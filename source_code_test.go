@@ -13,22 +13,15 @@ type migrationMock struct {
 	description string
 	up          bool
 	down        bool
+	manager     Manager
 }
 
-func (this *migrationMock) Id() time.Time {
+func (this *migrationMock) GetId() time.Time {
 	return this.id
 }
 
-func (this *migrationMock) Description() string {
+func (this *migrationMock) GetDescription() string {
 	return this.description
-}
-
-func (this *migrationMock) HasUp() bool {
-	return this.up
-}
-
-func (this *migrationMock) HasDown() bool {
-	return this.down
 }
 
 func (this *migrationMock) Up() error {
@@ -36,6 +29,14 @@ func (this *migrationMock) Up() error {
 }
 
 func (this *migrationMock) Down() error {
+	return nil
+}
+
+func (this *migrationMock) GetManager() Manager {
+	return nil
+}
+
+func (this *migrationMock) SetManager(manager Manager) Migration {
 	return nil
 }
 
