@@ -1,8 +1,8 @@
 package migration
 
 import (
-	"time"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,31 +16,32 @@ type migrationMock struct {
 	manager     Manager
 }
 
-func (this *migrationMock) GetId() time.Time {
-	return this.id
+func (m *migrationMock) GetID() time.Time {
+	return m.id
 }
 
-func (this *migrationMock) GetDescription() string {
-	return this.description
+func (m *migrationMock) GetDescription() string {
+	return m.description
 }
 
-func (this *migrationMock) Up() error {
+func (m *migrationMock) Up() error {
 	return nil
 }
 
-func (this *migrationMock) Down() error {
+func (m *migrationMock) Down() error {
 	return nil
 }
 
-func (this *migrationMock) GetManager() Manager {
-	return nil
+func (m *migrationMock) GetManager() Manager {
+	return m.manager
 }
 
-func (this *migrationMock) SetManager(manager Manager) Migration {
-	return nil
+func (m *migrationMock) SetManager(manager Manager) Migration {
+	m.manager = manager
+	return m
 }
 
-func TestClassSource(t *testing.T) {
+func TestSourceCode(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Source Class")
 }

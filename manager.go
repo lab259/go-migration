@@ -4,29 +4,49 @@ import (
 	"time"
 )
 
-type MigrationListenerHandler func(migration Migration)
+type listenerHandler func(migration Migration)
 
-type MigrationListener struct {
-	Before MigrationListenerHandler
-	After  MigrationListenerHandler
+// Listener is a helper method used, mainly, for logging on the `Manager` methods.
+// Before executing any migration (in any direction) the `Manager` calls the
+// listener `Before`. Afterward, if it does not return any error, the listener's
+// `After` is called.
+type Listener struct {
+	Before listenerHandler
+	After  listenerHandler
 }
+
+// Manager is an interface that describe the common behavior of a migration
+// manager.
+//
+// Any manager is divider in two parts: the `Source` and `Target`. In short, the
+// `Source` is the origin of the migrations (eg. SQL files or Go scripts). A
+// `Target` is database technology that the migrations will be action on.
+//
+// Integrating the `Source` and the `Target`, the `Manager` is responsible for
+// running migrations with its methods `Migrate`, `Rewind`, `Reset`, `Up` and
+// `Down`.
 type Manager interface {
 	Source() Source
 	Target() Target
-	Migrate(*MigrationListener) ([]Migration, error)
+	Migrate(*Listener) ([]Migration, error)
 	MigrationsDone() ([]Migration, error)
 	MigrationsPending() ([]Migration, error)
-	Rewind(*MigrationListener) ([]Migration, error)
-	Reset(*MigrationListener, *MigrationListener) ([]Migration, []Migration, error)
-	Up(listener *MigrationListener) (Migration, error)
-	Down(listener *MigrationListener) (Migration, error)
+	Rewind(*Listener) ([]Migration, error)
+	Reset(*Listener, *Listener) ([]Migration, []Migration, error)
+	Up(listener *Listener) (Migration, error)
+	Down(listener *Listener) (Migration, error)
 }
 
+// ManagerBase is a default implementation of a Manager. It provides, via
+// migration.NewManager, a way to define what is the source and target of a
+// manager.
 type ManagerBase struct {
 	source Source
 	target Target
 }
 
+// NewManager creates and returns a migration.Manager implementation
+// (migration.ManagerBase) based on a target and source.
 func NewManager(target Target, source Source) Manager {
 	return &ManagerBase{
 		target: target,
@@ -34,123 +54,132 @@ func NewManager(target Target, source Source) Manager {
 	}
 }
 
-func (this *ManagerBase) Source() Source {
-	return this.source
+// Source returns the migration source used for this manager.
+func (m *ManagerBase) Source() Source {
+	return m.source
 }
 
-func (this *ManagerBase) Target() Target {
-	return this.target
+// Target returns the migration target used for this manager.
+func (m *ManagerBase) Target() Target {
+	return m.target
 }
 
-// This method returns all the migrations listed before the given `id`
+// MigrationsBefore returns all the migrations listed before the given `version`
 // (exclusive).
-func (this *ManagerBase) MigrationsBefore(id time.Time) ([]Migration, error) {
-	if migrations, err := this.source.List(); err == nil {
+func (m *ManagerBase) MigrationsBefore(version time.Time) ([]Migration, error) {
+	migrations, err := m.source.List()
+	if err == nil {
 		til := 0
 		for i := 0; i < len(migrations); i++ {
 			m := migrations[i]
-			if m.GetId().After(id) {
+			if m.GetID().After(version) {
 				return migrations[:i], nil
-			} else {
-				til = i + 1
 			}
+			til = i + 1
 		}
 		return migrations[0:til], nil
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
-// This method returns all the migrations listed after the given `id`
+// MigrationsAfter returns all the migrations listed after the given `version`
 // (exclusive).
-func (this *ManagerBase) MigrationsAfter(id time.Time) ([]Migration, error) {
-	if migrations, err := this.source.List(); err == nil {
+func (m *ManagerBase) MigrationsAfter(version time.Time) ([]Migration, error) {
+	migrations, err := m.source.List()
+	if err == nil {
 		for i := 0; i < len(migrations); i++ {
 			m := migrations[i]
-			if m.GetId().After(id) {
+			if m.GetID().After(version) {
 				return migrations[i:], nil
 			}
 		}
 		return migrations[0:0], nil
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
-func (this *ManagerBase) MigrationsPending() ([]Migration, error) {
-	if version, err := this.target.Version(); err == nil {
-		return this.MigrationsAfter(version)
-	} else {
-		return nil, err
+// MigrationsPending returns a list of migrations that were not executed yet. It
+// uses the migration.Manager.MigrationsBefore passing on the current version
+// from migration.Manager.Target.Version.
+func (m *ManagerBase) MigrationsPending() ([]Migration, error) {
+	version, err := m.target.Version()
+	if err == nil {
+		return m.MigrationsAfter(version)
 	}
+	return nil, err
 }
 
-func (this *ManagerBase) MigrationsDone() ([]Migration, error) {
-	if version, err := this.target.Version(); err == nil {
-		return this.MigrationsBefore(version)
-	} else {
-		return nil, err
+// MigrationsDone returns a list of migrations that were executed. It uses the
+// migration.Manager.MigrationsAfter passing on the current version from
+// migration.Manager.Target.Version.
+func (m *ManagerBase) MigrationsDone() ([]Migration, error) {
+	version, err := m.target.Version()
+	if err == nil {
+		return m.MigrationsBefore(version)
 	}
+	return nil, err
 }
 
-// This method take a step up on the migrations, bringing the database one step
-// closer to the latest migration.
-func (this *ManagerBase) Up(listener *MigrationListener) (Migration, error) {
-	if migrations, err := this.MigrationsPending(); err == nil {
+// Up takes a step up on the migrations, bringing the database one step closer
+// to the latest migration.
+//
+// Before the execution of the migrations, it calls the listener.Before method.
+// After the migration is executed, if it returns no error, it calls the
+// listener.After method.
+func (m *ManagerBase) Up(listener *Listener) (Migration, error) {
+	migrations, err := m.MigrationsPending()
+	if err == nil {
 		if len(migrations) > 0 {
 			listener.Before(migrations[0])
 			err = migrations[0].Up()
 			if err == nil {
-				if err = this.target.SetVersion(migrations[0].GetId()); err == nil {
+				if err = m.target.SetVersion(migrations[0].GetID()); err == nil {
 					listener.After(migrations[0])
 					return migrations[0], err
-				} else {
-					return nil, err
 				}
-			} else {
 				return nil, err
 			}
-		} else {
-			return nil, nil
+			return nil, err
 		}
-	} else {
-		return nil, err
+		return nil, nil
 	}
+	return nil, err
 }
 
-// This method take a step down on the migrations, bringing the database one
-// step away to the latest migration.
-func (this *ManagerBase) Down(listener *MigrationListener) (Migration, error) {
-	if migrations, err := this.MigrationsDone(); err == nil {
+// Down takes a step up on the migrations, bringing the database one step closer
+// to the latest migration.
+//
+// Before the execution of the migrations, it calls the listener.Before method.
+// After the migration is executed, if it returns no error, it calls the
+// listener.After method.
+func (m *ManagerBase) Down(listener *Listener) (Migration, error) {
+	migrations, err := m.MigrationsDone()
+	if err == nil {
 		if len(migrations) > 0 {
 			i := len(migrations) - 1
 			listener.Before(migrations[i])
 			err = migrations[i].Down()
 			if err == nil {
-				if err = this.target.SetVersion(migrations[i].GetId()); err == nil {
+				if err = m.target.SetVersion(migrations[i].GetID()); err == nil {
 					listener.After(migrations[i])
 					return migrations[i], err
-				} else {
-					return nil, err
 				}
-			} else {
 				return nil, err
 			}
-		} else {
-			return nil, nil
+			return nil, err
 		}
-	} else {
-		return nil, err
+		return nil, nil
 	}
+	return nil, err
 }
 
-// This method takes the database to the latest migration.
-func (this *ManagerBase) Migrate(listener *MigrationListener) ([]Migration, error) {
-	version, err := this.target.Version()
+// Migrate brings the database to the latest migration.
+func (m *ManagerBase) Migrate(listener *Listener) ([]Migration, error) {
+	version, err := m.target.Version()
 	if err != nil {
 		return nil, err
 	}
-	list, err := this.MigrationsAfter(version)
+	list, err := m.MigrationsAfter(version)
 	if err != nil {
 		return nil, err
 	}
@@ -159,38 +188,41 @@ func (this *ManagerBase) Migrate(listener *MigrationListener) ([]Migration, erro
 		if (listener != nil) && (listener.Before != nil) {
 			listener.Before(list[i])
 		}
-		if err := list[i].SetManager(this).Up(); err == nil {
+		if err = list[i].SetManager(m).Up(); err == nil {
 			result = append(result, list[i])
-			if err := this.Target().SetVersion(list[i].GetId()); err != nil {
+			if err := m.Target().SetVersion(list[i].GetID()); err != nil {
 				return result, err
 			}
 			if (listener != nil) && (listener.After != nil) {
 				listener.After(list[i])
 			}
-		} else {
-			return result, err
 		}
+		return result, err
 	}
 	return result, nil
 }
 
-// Reverts all the migrations
-func (this *ManagerBase) Rewind(listener *MigrationListener) ([]Migration, error) {
-	version, err := this.target.Version()
+// Rewind removes all migrations previously migrated.
+//
+// It lists all the executed migrations and executes their
+// migration.Migrate.Down in a inverted order, virtually bringing the database
+// to its original form.
+func (m *ManagerBase) Rewind(listener *Listener) ([]Migration, error) {
+	version, err := m.target.Version()
 	if err != nil {
 		return nil, err
 	}
-	list, err := this.MigrationsBefore(version)
+	list, err := m.MigrationsBefore(version)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]Migration, 0, len(list))
 	for i := len(list) - 1; i >= 0; i-- {
-		this.target.SetVersion(list[i].GetId())
+		m.target.SetVersion(list[i].GetID())
 		if (listener != nil) && (listener.Before != nil) {
 			listener.Before(list[i])
 		}
-		if err := list[i].SetManager(this).Down(); err != nil {
+		if err := list[i].SetManager(m).Down(); err != nil {
 			return result, err
 		}
 		if (listener != nil) && (listener.After != nil) {
@@ -198,19 +230,19 @@ func (this *ManagerBase) Rewind(listener *MigrationListener) ([]Migration, error
 		}
 		result = append(result, list[i])
 	}
-	this.target.SetVersion(NOVERSION)
+	m.target.SetVersion(NoVersion)
 	return result, nil
 }
 
-// Rewind all the migrations, then migrates to the latest.
-func (this *ManagerBase) Reset(listenerRewind *MigrationListener, listenerMigrate *MigrationListener) ([]Migration, []Migration, error) {
-	if migrationsBack, err := this.Rewind(listenerRewind); err != nil {
+// Reset rewind all the migrations, then migrates to the latest.
+func (m *ManagerBase) Reset(listenerRewind *Listener, listenerMigrate *Listener) ([]Migration, []Migration, error) {
+	migrationsBack, err := m.Rewind(listenerRewind)
+	if err != nil {
 		return migrationsBack, nil, err
-	} else {
-		if migrationsForward, err := this.Migrate(listenerMigrate); err != nil {
-			return migrationsBack, migrationsForward, err
-		} else {
-			return migrationsBack, migrationsForward, nil
-		}
 	}
+	migrationsForward, err := m.Migrate(listenerMigrate)
+	if err != nil {
+		return migrationsBack, migrationsForward, err
+	}
+	return migrationsBack, migrationsForward, nil
 }

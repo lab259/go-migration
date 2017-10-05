@@ -1,8 +1,18 @@
 package migration
 
-import "time"
+import (
+	"time"
+)
 
-type MigrationFile struct {
+// FileMigration is the implementation of the migration.Migration that runs SQL
+// files.
+//
+// It is designed to provide a coded implementaiton of a migration. It receives
+// an up and down anonymous methods to be ran while executing the migration.
+//
+// It is used by the migration.CodeSource implemenation of the
+// migration.Source.
+type FileMigration struct {
 	id          time.Time
 	description string
 	baseFile    string
@@ -12,27 +22,47 @@ type MigrationFile struct {
 	manager     Manager
 }
 
-func (this *MigrationFile) GetId() time.Time {
-	return this.id
+// GetID implements the migration.Migration.GetID by returning the id of this
+// migration.
+func (m *FileMigration) GetID() time.Time {
+	return m.id
 }
 
-func (this *MigrationFile) GetDescription() string {
-	return this.description
+// GetDescription implements the migration.Migration.GetDescription by returning the id of this
+// migration.
+func (m *FileMigration) GetDescription() string {
+	return m.description
 }
 
-func (this *MigrationFile) Up() error {
+// Up implements the migration.Migration.Up by running all SQLs inside of the
+// [migration.FileMigration.baseFile].up.sql file.
+//
+// If the file does not exists, it returns an error.
+func (m *FileMigration) Up() error {
+	// TODO
 	return nil
 }
 
-func (this *MigrationFile) Down() error {
+// Down implements the migration.Migration.Down by running all SQLs inside of
+// the [migration.FileMigration.baseFile].down.sql file.
+//
+// If the file does not exists, it returns an error.
+func (m *FileMigration) Down() error {
+	// TODO
 	return nil
 }
 
-func (this *MigrationFile) GetManager() Manager {
-	return this.manager
+// GetManager implements the migration.Migration.GetManager by returning the
+// manager responsible for the execution.
+func (m *FileMigration) GetManager() Manager {
+	return m.manager
 }
 
-func (this *MigrationFile) SetManager(manager Manager) Migration {
-	this.manager = manager
-	return this
+// SetManager implements the migration.Migration.SetManager by setting the
+// manager of this instance.
+//
+// It returns the itself for sugar syntax purposes.
+func (m *FileMigration) SetManager(manager Manager) Migration {
+	m.manager = manager
+	return m
 }

@@ -15,9 +15,6 @@ test:
 
 
 test-with-flags:
-	@echo SOURCE: $(SOURCE)
-	@echo DATABASE: $(DATABASE)
-
 	go test $(TEST_FLAGS) .
 
 html-coverage:

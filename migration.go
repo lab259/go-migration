@@ -2,10 +2,13 @@ package migration
 
 import "time"
 
-const DEFAULT_MIGRATION_TABLE = "_migrations"
+// DefaultMigrationTable is the default name of the migrations table.
+const DefaultMigrationTable = "_migrations"
 
+// Migration is the interface that describes the common behavior that a
+// migration should have to be manageable by the migration.Manager.
 type Migration interface {
-	GetId() time.Time
+	GetID() time.Time
 	GetDescription() string
 	Up() error
 	Down() error
