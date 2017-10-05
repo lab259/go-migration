@@ -1,3 +1,8 @@
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/go-gormigrate/gormigrate/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/jamillosantos/migration.svg?branch=master)](https://travis-ci.org/jamillosantos/migration)
+[![Coverage Status](https://coveralls.io/repos/github/jamillosantos/migration/badge.svg?branch=master)](https://coveralls.io/github/jamillosantos/migration?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jamillosantos/migration)](https://goreportcard.com/report/github.com/jamillosantos/migration)
+
 # Migration
 
 A simple migration framework for Golang.
@@ -35,7 +40,7 @@ database configurations and connections specifics.
 As simple as it can be, it can track anything that can be versioned. From
 NoSQLs, until text files using diffs.
 
-## Why don't you have a CLI version?
+## Why it does't have a CLI command?
 
 It could be implemented when you are using SQL files as source
 (check the [source_directory.go](source_directory.go) implementation). However,
