@@ -175,11 +175,8 @@ func (m *ManagerBase) Down(listener *Listener) (Migration, error) {
 
 // Migrate brings the database to the latest migration.
 func (m *ManagerBase) Migrate(listener *Listener) ([]Migration, error) {
-	version, err := m.target.Version()
-	if err != nil {
-		return nil, err
-	}
-	list, err := m.MigrationsAfter(version)
+	list, err := m.MigrationsPending()
+
 	if err != nil {
 		return nil, err
 	}
@@ -188,16 +185,16 @@ func (m *ManagerBase) Migrate(listener *Listener) ([]Migration, error) {
 		if (listener != nil) && (listener.Before != nil) {
 			listener.Before(list[i])
 		}
-		if err = list[i].SetManager(m).Up(); err == nil {
-			result = append(result, list[i])
-			if err := m.Target().SetVersion(list[i].GetID()); err != nil {
-				return result, err
-			}
-			if (listener != nil) && (listener.After != nil) {
-				listener.After(list[i])
-			}
+		if err = list[i].SetManager(m).Up(); err != nil {
+			return result, err
 		}
-		return result, err
+		result = append(result, list[i])
+		if err := m.Target().SetVersion(list[i].GetID()); err != nil {
+			return result, err
+		}
+		if (listener != nil) && (listener.After != nil) {
+			listener.After(list[i])
+		}
 	}
 	return result, nil
 }
