@@ -1,7 +1,6 @@
 package migration
 
 import (
-	"log"
 	"os"
 	"fmt"
 	"io"
@@ -26,7 +25,11 @@ func (reporter *DefaultReporter) print(args ...interface{}) {
 }
 
 func (reporter *DefaultReporter) BeforeMigration(summary MigrationSummary, err error) {
-	reporter.print(styleNormal("  Applying ["))
+	if summary.Direction() == MigrationDirectionDo {
+		reporter.print(styleNormal("  Applying ["))
+	} else {
+		reporter.print(styleNormal("  Rewinding ["))
+	}
 	reporter.print(styleMigrationId(summary.Migration.GetID().Format(MigrationIdFormat)))
 	reporter.print(styleNormal("] "))
 	reporter.print(styleMigrationTitle(summary.Migration.GetDescription()))
@@ -61,47 +64,68 @@ func (reporter *DefaultReporter) AfterMigration(summary MigrationSummary, err er
 }
 
 func (reporter *DefaultReporter) BeforeMigrate(migrations []Migration) {
-	reporter.printLn(fmt.Sprintf("Preparing to run %d migrations", len(migrations)))
+	if len(migrations) == 0 {
+		reporter.noMigrationsPending()
+	} else {
+		reporter.printLn(fmt.Sprintf("Preparing to apply %d migrations", len(migrations)))
+	}
 }
 
 func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, err error) {
-	log.Println("AfterMigrate")
+	executed := 0
+	failed := 0
+	for _, m := range migrations {
+		if m.Failed() || m.Panicked() {
+			failed++
+		} else {
+			executed++
+		}
+	}
+	reporter.printLn(fmt.Sprintf("  %s migrations were applied %s failed", styleSuccess(fmt.Sprintf("%d", executed)), styleError(fmt.Sprintf("%d", failed))))
 }
 
 func (reporter *DefaultReporter) BeforeRewind(migrations []Migration) {
-	log.Println("RewindSummary")
+	if len(migrations) == 0 {
+		reporter.noMigrationsExecuted()
+	} else {
+		reporter.printLn(fmt.Sprintf("Preparing to rewind %d migrations", len(migrations)))
+	}
 }
 
 func (reporter *DefaultReporter) AfterRewind(migrations []*MigrationSummary, err error) {
-	log.Println("RewindSummary")
+	executed := 0
+	failed := 0
+	for _, m := range migrations {
+		if m.Failed() || m.Panicked() {
+			failed++
+		} else {
+			executed++
+		}
+	}
+	reporter.printLn(fmt.Sprintf("  %s migrations were rewinded %s failed", styleSuccess(fmt.Sprintf("%d", executed)), styleError(fmt.Sprintf("%d", failed))))
 }
 
 func (reporter *DefaultReporter) BeforeReset(rewindSummary []Migration, migrateSummary []Migration) {
-	log.Println("ResetSummary")
+	// TODO
 }
 
 func (reporter *DefaultReporter) AfterReset(rewindSummary []*MigrationSummary, migrateSummary []*MigrationSummary, err error) {
-	log.Println("ResetSummary")
+	reporter.printLn()
+	reporter.AfterRewind(rewindSummary, err)
+	reporter.AfterMigrate(migrateSummary, err)
+	reporter.printLn()
 }
 
 func (reporter *DefaultReporter) MigrationSummary(migration *MigrationSummary, err error) {
 	if migration == nil && err == nil {
-		// TODO
-		log.Println("Nothing to be done")
-	} else if migration == nil {
-		// TODO
-		log.Println(err)
-	} else if err != nil {
-		// TODO
-		log.Println(migration.Migration.GetDescription(), err)
-	} else {
-		// TODO
-		log.Println(migration.Migration.GetDescription())
+		reporter.printLn(styleWarning("  Nothing to be done"))
 	}
+	reporter.printLn()
 }
 
 func (reporter *DefaultReporter) noMigrationsPending() {
 	reporter.printLn(styleSuccess("  No migrations pending."))
+	reporter.printLn()
 }
 
 func (reporter *DefaultReporter) ListPending(migrations []Migration, err error) {
@@ -125,6 +149,7 @@ func (reporter *DefaultReporter) ListPending(migrations []Migration, err error) 
 
 func (reporter *DefaultReporter) noMigrationsExecuted() {
 	reporter.printLn(styleWarning(fmt.Sprintf("  No migrations were executed.")))
+	reporter.printLn("")
 }
 
 func (reporter *DefaultReporter) ListExecuted(migrations []Migration, err error) {

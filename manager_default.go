@@ -113,7 +113,6 @@ func (manager *ManagerDefault) Do(listener Reporter) (*MigrationSummary, error) 
 			/*
 			if r := recover(); r != nil {
 				summary.panicked = true
-				log.Println(r)
 				// TODO Capture the panic info
 			}
 			*/
@@ -142,15 +141,16 @@ func (manager *ManagerDefault) Do(listener Reporter) (*MigrationSummary, error) 
 // After the migration is executed, if it returns no error, it calls the
 // listener.After method.
 func (manager *ManagerDefault) Undo(listener Reporter) (*MigrationSummary, error) {
-	migrations, err := manager.MigrationsPending()
+	migrations, err := manager.MigrationsExecuted()
 	if err != nil {
 		return nil, err
 	}
+	// No migrations
 	if len(migrations) == 0 {
 		return nil, nil
 	}
 	summary := &MigrationSummary{
-		Migration: migrations[0],
+		Migration: migrations[len(migrations)-1],
 		direction: MigrationDirectionUndo,
 	}
 	listener.BeforeMigration(*summary, nil)
@@ -158,24 +158,29 @@ func (manager *ManagerDefault) Undo(listener Reporter) (*MigrationSummary, error
 	startedAt := time.Now()
 	func() {
 		defer func() {
-			summary.panicked = true
-			// TODO Capture the panic info
-			recover()
+			/*
+			if r := recover(); r != nil {
+				summary.panicked = true
+				// TODO Capture the panic info
+			}
+			*/
 		}()
-		err = migrations[0].Undo()
+		err = migrations[0].Do()
 	}()
 	summary.duration = time.Since(startedAt)
 
 	if err != nil {
 		summary.setFailed(err)
+		listener.AfterMigration(*summary, err)
+		return nil, err
+	}
+	nversion := summary.Migration.GetID().Add(-time.Millisecond)
+	if err = manager.target.SetVersion(nversion); err == nil {
+		listener.AfterMigration(*summary, nil)
 		return summary, nil
 	}
-	if err = manager.target.SetVersion(migrations[0].GetID()); err == nil {
-		listener.AfterMigration(*summary, nil)
-		return summary, err
-	}
 	summary.setFailed(err)
-	return nil, err
+	return summary, err
 }
 
 // Migrate brings the database to the latest migration.
@@ -212,10 +217,11 @@ func (manager *ManagerDefault) Rewind(listener Reporter) ([]*MigrationSummary, e
 	if err != nil {
 		return nil, err
 	}
-	list, err := manager.migrationsAfter(version)
+	list, err := manager.migrationsBefore(version)
 	if err != nil {
 		return nil, err
 	}
+	listener.BeforeRewind(list)
 	result := make([]*MigrationSummary, 0, len(list))
 	for i := 0; i < len(list); i++ {
 		summary, err := manager.Undo(listener)

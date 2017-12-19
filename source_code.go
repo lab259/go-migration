@@ -1,5 +1,7 @@
 package migration
 
+import "fmt"
+
 // CodeSource is migration.Source implementation. It provides the development
 // of migrations using Golang code.
 //
@@ -42,6 +44,9 @@ func (s *CodeSource) List() ([]Migration, error) {
 // Register registers the migration for further use.
 func (s *CodeSource) Register(migration Migration) {
 	for i := 0; i < len(s.migrations); i++ {
+		if s.migrations[i].GetID() == migration.GetID() {
+			panic(fmt.Sprintf("Migrations %s and %s have the same ID", s.migrations[i].GetDescription(), migration.GetDescription()))
+		}
 		if s.migrations[i].GetID().After(migration.GetID()) {
 			s.migrations = append(s.migrations[:i], append([]Migration{migration}, s.migrations[i:]...)...)
 			return
