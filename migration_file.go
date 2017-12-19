@@ -1,8 +1,6 @@
 package migration
 
-import (
-	"time"
-)
+import "time"
 
 // FileMigration is the implementation of the migration.Migration that runs SQL
 // files.
@@ -38,7 +36,7 @@ func (m *FileMigration) GetDescription() string {
 // [migration.FileMigration.baseFile].up.sql file.
 //
 // If the file does not exists, it returns an error.
-func (m *FileMigration) Up() error {
+func (m *FileMigration) Do() error {
 	// TODO
 	return nil
 }
@@ -47,7 +45,7 @@ func (m *FileMigration) Up() error {
 // the [migration.FileMigration.baseFile].down.sql file.
 //
 // If the file does not exists, it returns an error.
-func (m *FileMigration) Down() error {
+func (m *FileMigration) Undo() error {
 	// TODO
 	return nil
 }

@@ -1,11 +1,11 @@
-package migration
+package migration_test
 
 import (
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/jamillosantos/migration"
 )
 
 type migrationMock struct {
@@ -13,7 +13,7 @@ type migrationMock struct {
 	description string
 	up          bool
 	down        bool
-	manager     Manager
+	manager     migration.Manager
 }
 
 func (m *migrationMock) GetID() time.Time {
@@ -24,26 +24,21 @@ func (m *migrationMock) GetDescription() string {
 	return m.description
 }
 
-func (m *migrationMock) Up() error {
+func (m *migrationMock) Do() error {
 	return nil
 }
 
-func (m *migrationMock) Down() error {
+func (m *migrationMock) Undo() error {
 	return nil
 }
 
-func (m *migrationMock) GetManager() Manager {
+func (m *migrationMock) GetManager() migration.Manager {
 	return m.manager
 }
 
-func (m *migrationMock) SetManager(manager Manager) Migration {
+func (m *migrationMock) SetManager(manager migration.Manager) migration.Migration {
 	m.manager = manager
 	return m
-}
-
-func TestSourceCode(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Source Class")
 }
 
 var _ = Describe("Source Code", func() {
@@ -70,23 +65,27 @@ var _ = Describe("Source Code", func() {
 		}
 
 		It("It should register migrations", func() {
-			d := NewCodeSource()
+			d := migration.NewCodeSource()
 			d.Register(m1)
 			d.Register(m2)
 
-			Expect(d.migrations).To(HaveLen(2))
+			list, err := d.List()
+			Expect(err).To(BeNil())
+			Expect(list).To(HaveLen(2))
 		})
 
 		It("It should register migrations with inverted order", func() {
-			d := NewCodeSource()
+			d := migration.NewCodeSource()
 			d.Register(m1)
 			d.Register(m2)
 			d.Register(m3)
 
-			Expect(d.migrations).To(HaveLen(3))
-			Expect(d.migrations[0].GetDescription()).To(Equal("GetDescription 3"))
-			Expect(d.migrations[1].GetDescription()).To(Equal("GetDescription 2"))
-			Expect(d.migrations[2].GetDescription()).To(Equal("GetDescription 1"))
+			list, err := d.List()
+			Expect(err).To(BeNil())
+			Expect(list).To(HaveLen(3))
+			Expect(list[0].GetDescription()).To(Equal("GetDescription 3"))
+			Expect(list[1].GetDescription()).To(Equal("GetDescription 2"))
+			Expect(list[2].GetDescription()).To(Equal("GetDescription 1"))
 		})
 	})
 })

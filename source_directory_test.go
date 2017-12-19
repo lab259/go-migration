@@ -1,31 +1,17 @@
-package migration
+package migration_test
 
 import (
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/jamillosantos/migration"
 )
 
-func TestDirectorySource(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Source Directory")
-}
-
 var _ = Describe("Source Directory", func() {
-	Describe("FileMigration pattern", func() {
-		It("It should match a file", func() {
-			ms := directorySourcePattern.FindStringSubmatch("20010203040506_Description1")
-			Expect(ms).To(HaveLen(3))
-			Expect(ms[1]).To(Equal("20010203040506"))
-			Expect(ms[2]).To(Equal("Description1"))
-		})
-	})
-
 	Describe("List", func() {
 		It("It should list the files of a directory", func() {
-			d := DirectorySource{
+			d := migration.DirectorySource{
 				Directory: "test/migrations1",
 				Extension: "sql",
 			}

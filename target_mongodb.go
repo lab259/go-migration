@@ -1,8 +1,8 @@
 package migration
 
-import "time"
 import (
 	"gopkg.in/mgo.v2"
+	"time"
 )
 
 // MongoDBTarget implements the migration.Target of the MongoDB.

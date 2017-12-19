@@ -58,7 +58,7 @@ func (s *DirectorySource) List() ([]Migration, error) {
 					description string
 				)
 				if tmpdata := directorySourcePattern.FindStringSubmatch(toks[0]); !((len(tmpdata) != 3) || (tmpdata[1] == "") || (tmpdata[2] == "")) {
-					id, err = time.Parse("20060102150405", tmpdata[1])
+					id = NewMigrationId(tmpdata[1])
 					description = strings.Replace(tmpdata[2], "_", " ", 0)
 					if err != nil {
 						return nil, err
