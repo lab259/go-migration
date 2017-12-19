@@ -5,6 +5,8 @@ import "github.com/fatih/color"
 type cprintf func(format string, args ...interface{}) string
 
 var (
+	styleBold = color.New(color.Bold).SprintfFunc()
+
 	styleNormal         = color.New(color.FgHiBlack).SprintfFunc()
 	styleMigrationTitle = color.New(color.FgWhite).SprintfFunc()
 	styleMigrationId    = color.New(color.FgCyan).SprintfFunc()

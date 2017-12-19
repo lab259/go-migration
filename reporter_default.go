@@ -82,6 +82,9 @@ func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, er
 		}
 	}
 	reporter.printLn(fmt.Sprintf("  %s migrations were applied %s failed", styleSuccess(fmt.Sprintf("%d", executed)), styleError(fmt.Sprintf("%d", failed))))
+	if failed > 0 {
+		os.Exit(10)
+	}
 }
 
 func (reporter *DefaultReporter) BeforeRewind(migrations []Migration) {
@@ -103,6 +106,9 @@ func (reporter *DefaultReporter) AfterRewind(migrations []*MigrationSummary, err
 		}
 	}
 	reporter.printLn(fmt.Sprintf("  %s migrations were rewinded %s failed", styleSuccess(fmt.Sprintf("%d", executed)), styleError(fmt.Sprintf("%d", failed))))
+	if failed > 0 {
+		os.Exit(10)
+	}
 }
 
 func (reporter *DefaultReporter) BeforeReset(rewindSummary []Migration, migrateSummary []Migration) {
@@ -169,4 +175,25 @@ func (reporter *DefaultReporter) ListExecuted(migrations []Migration, err error)
 		reporter.noMigrationsExecuted()
 	}
 	reporter.printLn()
+}
+
+func (reporter *DefaultReporter) Usage() {
+	reporter.printLn("Usage:", os.Args[0], "[migrate | rewind | do | undo | executed | pending]")
+	reporter.printLn()
+	line := "  %18s  %s"
+	reporter.printLn(fmt.Sprintf(line, styleBold("migrate"), "Apply all pending migrations"))
+	reporter.printLn(fmt.Sprintf(line, styleBold("rewind"), "Rewind all executed migrations"))
+	reporter.printLn(fmt.Sprintf(line, styleBold("do"), "Execute the next pending migration"))
+	reporter.printLn(fmt.Sprintf(line, styleBold("undo"), "Execute the last applied migration"))
+	reporter.printLn(fmt.Sprintf(line, styleBold("executed"), "List all executed migrations"))
+	reporter.printLn(fmt.Sprintf(line, styleBold("pending"), "List all pending migrations"))
+	reporter.printLn()
+}
+
+func (reporter *DefaultReporter) CommandNotFound(command string) {
+	reporter.printLn(fmt.Sprintf("Command %s was not found"))
+}
+
+func (reporter *DefaultReporter) NoCommand() {
+	reporter.Usage()
 }
