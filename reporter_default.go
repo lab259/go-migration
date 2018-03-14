@@ -7,12 +7,21 @@ import (
 )
 
 type DefaultReporter struct {
-	writer io.Writer
+	writer  io.Writer
+	exitFnc func(code int)
 }
 
 func NewDefaultReporter() *DefaultReporter {
 	return &DefaultReporter{
-		writer: os.Stdout,
+		writer:  os.Stdout,
+		exitFnc: os.Exit,
+	}
+}
+
+func NewDefaultReporterWithParams(w io.Writer, exitFnc func(code int)) *DefaultReporter {
+	return &DefaultReporter{
+		writer:  w,
+		exitFnc: exitFnc,
 	}
 }
 
@@ -22,6 +31,14 @@ func (reporter *DefaultReporter) printLn(args ...interface{}) {
 
 func (reporter *DefaultReporter) print(args ...interface{}) {
 	fmt.Fprint(reporter.writer, args...)
+}
+
+func (reporter *DefaultReporter) Failure(err error) {
+	reporter.printLn(err)
+}
+
+func (reporter *DefaultReporter) Exit(code int) {
+	reporter.exitFnc(code)
 }
 
 func (reporter *DefaultReporter) BeforeMigration(summary MigrationSummary, err error) {
@@ -73,8 +90,8 @@ func (reporter *DefaultReporter) BeforeMigrate(migrations []Migration) {
 
 func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, err error) {
 	if err != nil {
-		reporter.printLn(err)
-		os.Exit(11)
+		reporter.Failure(err)
+		reporter.Exit(11)
 	}
 	executed := 0
 	failed := 0
@@ -87,7 +104,7 @@ func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, er
 	}
 	reporter.printLn(fmt.Sprintf("  %s migrations were applied %s failed", styleSuccess(fmt.Sprintf("%d", executed)), styleError(fmt.Sprintf("%d", failed))))
 	if failed > 0 {
-		os.Exit(10)
+		reporter.Exit(10)
 	}
 }
 
@@ -111,7 +128,7 @@ func (reporter *DefaultReporter) AfterRewind(migrations []*MigrationSummary, err
 	}
 	reporter.printLn(fmt.Sprintf("  %s migrations were rewinded %s failed", styleSuccess(fmt.Sprintf("%d", executed)), styleError(fmt.Sprintf("%d", failed))))
 	if failed > 0 {
-		os.Exit(10)
+		reporter.Exit(10)
 	}
 }
 

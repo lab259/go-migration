@@ -8,9 +8,10 @@ type ArgsRunner struct {
 	reporter Reporter
 	manager  Manager
 	args     []string
+	exitFnc  func(code int)
 }
 
-func NewArgsRunner(reporter Reporter, manager Manager) Runner {
+func NewArgsRunner(reporter Reporter, manager Manager, exitFnc func(code int)) Runner {
 	return &ArgsRunner{
 		reporter: reporter,
 		manager:  manager,

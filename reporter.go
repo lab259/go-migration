@@ -21,6 +21,9 @@ type Reporter interface {
 	ListPending(migrations []Migration, err error)
 	ListExecuted(migrations []Migration, err error)
 
+	Failure(err error)
+	Exit(code int)
+
 	Usage()
 	CommandNotFound(command string)
 	NoCommand()
