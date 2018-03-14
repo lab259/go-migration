@@ -72,6 +72,10 @@ func (reporter *DefaultReporter) BeforeMigrate(migrations []Migration) {
 }
 
 func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, err error) {
+	if err != nil {
+		reporter.printLn(err)
+		os.Exit(11)
+	}
 	executed := 0
 	failed := 0
 	for _, m := range migrations {
