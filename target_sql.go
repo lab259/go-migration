@@ -1,10 +1,10 @@
 package migration
 
 import (
-	"time"
-	"database/sql"
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 )
 
 // MySQLTarget implements the migration.Target of the SQL based databases, using

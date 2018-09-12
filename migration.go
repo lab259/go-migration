@@ -1,8 +1,8 @@
 package migration
 
 import (
-	"time"
 	"fmt"
+	"time"
 )
 
 type MigrationDirection uint

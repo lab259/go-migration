@@ -1,9 +1,9 @@
 package migration
 
 import (
-	"os"
 	"fmt"
 	"io"
+	"os"
 )
 
 type DefaultReporter struct {

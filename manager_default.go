@@ -1,8 +1,8 @@
 package migration
 
 import (
-	"time"
 	"errors"
+	"time"
 )
 
 var ErrMigrationPanicked = errors.New("migration panicked")
@@ -133,7 +133,7 @@ func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Migr
 	if !summary.panicked && err != nil {
 		summary.setFailed(err)
 		reporter.AfterMigration(*summary, err)
-		return summary, nil
+		return summary, err
 	}
 	reporter.AfterMigration(*summary, err)
 
@@ -164,12 +164,17 @@ func (manager *ManagerDefault) Undo(reporter Reporter) (*MigrationSummary, error
 	}
 	summary, err := manager.undo(migrations[len(migrations)-1], reporter)
 	if !summary.failed && !summary.panicked {
-		nVersion := summary.Migration.GetID().Add(-time.Millisecond)
+		var nVersion time.Time
+		if len(migrations) > 1 {
+			nVersion = migrations[len(migrations)-2].GetID()
+		} else {
+			nVersion = NoVersion
+		}
 		if err = manager.target.SetVersion(nVersion); err != nil {
 			return summary, err
 		}
 	}
-	return summary, nil
+	return summary, err
 }
 
 func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*MigrationSummary, error) {

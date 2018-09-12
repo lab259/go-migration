@@ -1,9 +1,9 @@
 package migrations
 
 import (
-	"github.com/globalsign/mgo"
 	. "../../.."
 	"../db"
+	"github.com/globalsign/mgo"
 )
 
 func init() {

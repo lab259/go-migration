@@ -3,9 +3,9 @@ package migration_test
 import (
 	"time"
 
+	"."
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"."
 )
 
 type migrationMock struct {

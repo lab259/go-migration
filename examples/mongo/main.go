@@ -2,11 +2,11 @@ package main
 
 import (
 	"../.."
-	"os"
-	"fmt"
-	"github.com/globalsign/mgo"
 	"../../examples/mongo/db"
 	_ "../../examples/mongo/migrations"
+	"fmt"
+	"github.com/globalsign/mgo"
+	"os"
 )
 
 func main() {

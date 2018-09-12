@@ -1,11 +1,11 @@
 package migration
 
 import (
-	"time"
-	"runtime"
 	"fmt"
-	"regexp"
 	"path"
+	"regexp"
+	"runtime"
+	"time"
 )
 
 type BaseMigration struct {

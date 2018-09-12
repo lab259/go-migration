@@ -3,10 +3,10 @@ package migration_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"."
 	"errors"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type nopTarget struct {
@@ -83,9 +83,9 @@ func (reporter *nopReporter) NoCommand() {
 var _ = Describe("ManagerDefault", func() {
 
 	var (
-		target                     migration.Target
-		codeSource                 *migration.CodeSource
-		manager                    migration.Manager
+		target     migration.Target
+		codeSource *migration.CodeSource
+		manager    migration.Manager
 		m1, m2, m3,
 		m4UndoneErr, m5DoneErr,
 		m4UndonePanic, m5DonePanic *migrationMock
@@ -341,7 +341,7 @@ var _ = Describe("ManagerDefault", func() {
 			target.SetVersion(now.Add(-time.Nanosecond))
 			codeSource = migration.NewCodeSource()
 			m := &migrationMock{
-				id:              now,
+				id:            now,
 				donePanicData: "this is the panic data",
 			}
 			codeSource.Register(m)
@@ -377,7 +377,7 @@ var _ = Describe("ManagerDefault", func() {
 			target.SetVersion(now.Add(-time.Nanosecond))
 			codeSource = migration.NewCodeSource()
 			m := &migrationMock{
-				id:              now,
+				id:            now,
 				donePanicData: errors.New("this is the panic data"),
 			}
 			codeSource.Register(m)
@@ -667,6 +667,370 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(m.undone).To(BeTrue())
 
 			Expect(manager.Target().Version()).To(Equal(now.Add(time.Nanosecond)))
+		})
+	})
+
+	Describe("Do", func() {
+		It("should execute a migration", func() {
+			manager.Target().SetVersion(migration.NoVersion)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m1))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m1))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m1.GetID()))
+		})
+
+		It("should multiple Do in sequence", func() {
+			manager.Target().SetVersion(migration.NoVersion)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m1))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m1))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m1.GetID()))
+
+			// Second
+			beforeMigrationCalled = false
+			summary, err = manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m2))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m2))
+
+			version, err = target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m2.GetID()))
+
+			// Third
+			beforeMigrationCalled = false
+			summary, err = manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m3))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m3))
+
+			version, err = target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m3.GetID()))
+		})
+
+		It("should fail migrating", func() {
+			codeSource = migration.NewCodeSource()
+			codeSource.Register(m5DoneErr)
+
+			manager := migration.NewDefaultManager(target, codeSource)
+			manager.Target().SetVersion(migration.NoVersion)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m5DoneErr))
+					beforeMigrationCalled = true
+				},
+			})
+			Expect(err).To(Equal(m5DoneErr.doneErr))
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m5DoneErr))
+			Expect(summary.Failed()).To(BeTrue())
+			Expect(summary.Failure()).To(Equal(m5DoneErr.doneErr))
+			Expect(summary.Panicked()).To(BeFalse())
+			Expect(summary.PanicData()).To(BeNil())
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(migration.NoVersion))
+		})
+
+		It("should panic an error when migrating", func() {
+			codeSource = migration.NewCodeSource()
+			now := time.Now().UTC()
+			m := &migrationMock{
+				id: now,
+				donePanicData: errors.New("forced error"),
+			}
+			codeSource.Register(m)
+
+			manager := migration.NewDefaultManager(target, codeSource)
+			manager.Target().SetVersion(migration.NoVersion)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m))
+					beforeMigrationCalled = true
+				},
+			})
+			Expect(err).To(Equal(migration.ErrMigrationPanicked))
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m))
+			Expect(summary.Failed()).To(BeTrue())
+			Expect(summary.Failure()).ToNot(BeNil())
+			Expect(summary.Failure().(error).Error()).To(ContainSubstring("forced error"))
+			Expect(summary.Panicked()).To(BeTrue())
+			Expect(summary.PanicData()).To(Equal(summary.Failure()))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(migration.NoVersion))
+		})
+
+		It("should panic an string when migrating", func() {
+			codeSource = migration.NewCodeSource()
+			now := time.Now().UTC()
+			m := &migrationMock{
+				id: now,
+				donePanicData: "panicked data",
+			}
+			codeSource.Register(m)
+
+			manager := migration.NewDefaultManager(target, codeSource)
+			manager.Target().SetVersion(migration.NoVersion)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Do(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+					Expect(summary.Migration).To(Equal(m))
+					beforeMigrationCalled = true
+				},
+			})
+			Expect(err).To(Equal(migration.ErrMigrationPanicked))
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Migration).To(Equal(m))
+			Expect(summary.Failed()).To(BeFalse())
+			Expect(summary.Failure()).To(BeNil())
+			Expect(summary.Panicked()).To(BeTrue())
+			Expect(summary.PanicData()).To(Equal("panicked data"))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(migration.NoVersion))
+		})
+	})
+
+	Describe("Undo", func() {
+		It("should undo a migration", func() {
+			manager.Target().SetVersion(m1.GetID())
+
+			beforeMigrationCalled := false
+			summary, err := manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m1))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m1))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(migration.NoVersion))
+		})
+
+		It("should multiple Undo in sequence", func() {
+			manager.Target().SetVersion(m3.GetID())
+
+			beforeMigrationCalled := false
+			summary, err := manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m3))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m3))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m2.GetID()))
+
+			// Second
+			beforeMigrationCalled = false
+			summary, err = manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m2))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m2))
+
+			version, err = target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m1.GetID()))
+
+			// Third
+			beforeMigrationCalled = false
+			summary, err = manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m1))
+					beforeMigrationCalled = true
+				},
+			})
+
+			Expect(err).To(BeNil())
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m1))
+
+			version, err = target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(migration.NoVersion))
+		})
+
+		It("should fail migrating", func() {
+			codeSource = migration.NewCodeSource()
+			codeSource.Register(m4UndoneErr)
+
+			manager := migration.NewDefaultManager(target, codeSource)
+			manager.Target().SetVersion(m4UndoneErr.GetID())
+
+			beforeMigrationCalled := false
+			summary, err := manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m4UndoneErr))
+					beforeMigrationCalled = true
+				},
+			})
+			Expect(err).To(Equal(m4UndoneErr.undoneErr))
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m4UndoneErr))
+			Expect(summary.Failed()).To(BeTrue())
+			Expect(summary.Failure()).To(Equal(m4UndoneErr.undoneErr))
+			Expect(summary.Panicked()).To(BeFalse())
+			Expect(summary.PanicData()).To(BeNil())
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m4UndoneErr.GetID()))
+		})
+
+		It("should panic an error when migrating", func() {
+			codeSource = migration.NewCodeSource()
+			now := time.Now().UTC()
+			m := &migrationMock{
+				id: now,
+				undonePanicData: errors.New("forced error"),
+			}
+			codeSource.Register(m)
+
+			manager := migration.NewDefaultManager(target, codeSource)
+			manager.Target().SetVersion(now)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m))
+					beforeMigrationCalled = true
+				},
+			})
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(err).To(Equal(migration.ErrMigrationPanicked))
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m))
+			Expect(summary.Failed()).To(BeTrue())
+			Expect(summary.Failure()).ToNot(BeNil())
+			Expect(summary.Failure().(error).Error()).To(ContainSubstring("forced error"))
+			Expect(summary.Panicked()).To(BeTrue())
+			Expect(summary.PanicData()).To(Equal(summary.Failure()))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m.GetID()))
+		})
+
+		It("should panic an string when migrating", func() {
+			codeSource = migration.NewCodeSource()
+			now := time.Now().UTC()
+			m := &migrationMock{
+				id: now,
+				undonePanicData: "panicked data",
+			}
+			codeSource.Register(m)
+
+			manager := migration.NewDefaultManager(target, codeSource)
+			manager.Target().SetVersion(now)
+
+			beforeMigrationCalled := false
+			summary, err := manager.Undo(&nopReporter{
+				beforeMigration: func(summary *migration.MigrationSummary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+					Expect(summary.Migration).To(Equal(m))
+					beforeMigrationCalled = true
+				},
+			})
+			Expect(err).To(Equal(migration.ErrMigrationPanicked))
+			Expect(beforeMigrationCalled).To(BeTrue())
+			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Migration).To(Equal(m))
+			Expect(summary.Failed()).To(BeFalse())
+			Expect(summary.Failure()).To(BeNil())
+			Expect(summary.Panicked()).To(BeTrue())
+			Expect(summary.PanicData()).To(Equal("panicked data"))
+
+			version, err := target.Version()
+			Expect(err).To(BeNil())
+			Expect(version).To(Equal(m.GetID()))
 		})
 	})
 })

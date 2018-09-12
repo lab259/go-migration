@@ -1,10 +1,10 @@
 package migration_test
 
 import (
-	"testing"
+	"github.com/jamillosantos/macchiato"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/jamillosantos/macchiato"
+	"testing"
 )
 
 func TestMigration(t *testing.T) {
