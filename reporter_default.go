@@ -75,7 +75,7 @@ func (reporter *DefaultReporter) AfterMigration(summary MigrationSummary, err er
 	}
 	if summary.Failed() {
 		reporter.printLn()
-		reporter.printLn(fmt.Sprintf("    %s", styleError(summary.Failure().Message)))
+		reporter.printLn(fmt.Sprintf("    %s", styleError(summary.Failure().Error())))
 		reporter.printLn()
 	}
 }

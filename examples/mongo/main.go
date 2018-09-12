@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/jamillosantos/migration"
+	"../.."
 	"os"
 	"fmt"
-	"gopkg.in/mgo.v2"
-	"github.com/jamillosantos/migration/examples/mongo/db"
-	_ "github.com/jamillosantos/migration/examples/mongo/migrations"
+	"github.com/globalsign/mgo"
+	"../../examples/mongo/db"
+	_ "../../examples/mongo/migrations"
 )
 
 func main() {
@@ -23,6 +23,6 @@ func main() {
 	reporter := migration.NewDefaultReporter()
 
 	manager := migration.NewDefaultManager(migration.NewMongoDB(session), source)
-	runner := migration.NewArgsRunner(reporter, manager)
+	runner := migration.NewArgsRunner(reporter, manager, os.Exit)
 	runner.Run()
 }

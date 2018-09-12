@@ -1,14 +1,14 @@
 package migration
 
 import (
-	"gopkg.in/mgo.v2"
+	"github.com/globalsign/mgo"
 	"time"
 )
 
 // MongoDBTarget implements the migration.Target of the MongoDB.
 //
 // In order to get access to the MongoDB, migration.MongoDBTarget uses the MGo
-// library (http://gopkg.in/mgo.v2).
+// library (http://github.com/globalsign/mgo).
 type MongoDBTarget struct {
 	session        *mgo.Session
 	collectionName string

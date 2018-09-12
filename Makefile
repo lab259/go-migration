@@ -2,38 +2,37 @@ VERSION ?= $(shell git describe --tags 2>/dev/null | cut -c 2-)
 TEST_FLAGS ?=
 REPO_OWNER ?= $(shell cd .. && basename "$$(pwd)")
 
+GOPATH=$(CURDIR)/.gopath
 
-test-short:
-	make test-with-flags --ignore-errors TEST_FLAGS='-short'
+COVERDIR=$(CURDIR)/.cover
+COVERAGEFILE=$(COVERDIR)/cover.out
 
 test:
-	@-rm -r .coverage
-	@mkdir .coverage
-	make test-with-flags TEST_FLAGS='-v -race -covermode atomic -coverprofile .coverage/_$$(RAND).txt -bench=. -benchmem'
-	@echo 'mode: atomic' > .coverage/combined.txt
-	@cat .coverage/*.txt | grep -v 'mode: atomic' >> .coverage/combined.txt
+	@${GOPATHCMD} ginkgo --failFast ./...
 
-
-test-with-flags:
-	go test $(TEST_FLAGS) .
-
-html-coverage:
-	go tool cover -html=.coverage/combined.txt
+test-watch:
+	@${GOPATHCMD} ginkgo watch -cover -r ./...
 
 deps:
-	-go get -v -t ./...
-	-go test -i ./...
-
-list-external-deps:
-	$(call external_deps,'.')
-
-restore-import-paths:
-	find . -name '*.go' -type f -execdir sed -i '' s%\"github.com/$(REPO_OWNER)/migration%\"github.com/mattes/migrate%g '{}' \;
+	@mkdir -p ${GOPATH}
+#	@GOPATH=$(GOPATH) go get -v -t ./...
+	@go list -f '{{join .Deps "\n"}}' . | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | GOPATH=${GOPATH} xargs go get -t -v
 
 
-rewrite-import-paths:
-	find . -name '*.go' -type f -execdir sed -i '' s%\"github.com/jamillosantos/migration%\"github.com/$(REPO_OWNER)/migrate%g '{}' \;
+coverage:
+	@mkdir -p $(COVERDIR)
+	@${GOPATHCMD} ginkgo -r -covermode=count --cover --trace ./
+	@echo "mode: count" > "${COVERAGEFILE}"
+	@find . -type f -name *.coverprofile -exec grep -h -v "^mode:" {} >> "${COVERAGEFILE}" \; -exec rm -f {} \;
 
+coverage-ci:
+	@mkdir -p $(COVERDIR)
+	@${GOPATHCMD} ginkgo -r -covermode=count --cover --trace ./
+	@echo "mode: count" > "${COVERAGEFILE}"
+	@find . -type f -name *.coverprofile -exec grep -h -v "^mode:" {} >> "${COVERAGEFILE}" \; -exec rm -f {} \;
+
+coverage-html:
+	@$(GOPATHCMD) go tool cover -html="${COVERAGEFILE}" -o .cover/report.html
 
 # example: fswatch -0 --exclude .godoc.pid --event Updated . | xargs -0 -n1 -I{} make docs
 docs:

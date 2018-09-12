@@ -5,15 +5,19 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/jamillosantos/migration"
+	"."
 )
 
 type migrationMock struct {
-	id          time.Time
-	description string
-	up          bool
-	down        bool
-	manager     migration.Manager
+	id              time.Time
+	description     string
+	manager         migration.Manager
+	done            bool
+	undone          bool
+	doneErr         error
+	donePanicData   interface{}
+	undoneErr       error
+	undonePanicData interface{}
 }
 
 func (m *migrationMock) GetID() time.Time {
@@ -25,11 +29,19 @@ func (m *migrationMock) GetDescription() string {
 }
 
 func (m *migrationMock) Do() error {
-	return nil
+	m.done = true
+	if m.donePanicData != nil {
+		panic(m.donePanicData)
+	}
+	return m.doneErr
 }
 
 func (m *migrationMock) Undo() error {
-	return nil
+	m.undone = true
+	if m.undonePanicData != nil {
+		panic(m.undonePanicData)
+	}
+	return m.undoneErr
 }
 
 func (m *migrationMock) GetManager() migration.Manager {
@@ -42,29 +54,31 @@ func (m *migrationMock) SetManager(manager migration.Manager) migration.Migratio
 }
 
 var _ = Describe("Source Code", func() {
-	Describe("List", func() {
-		m1 := &migrationMock{
+	var (
+		m1 *migrationMock
+		m2 *migrationMock
+		m3 *migrationMock
+	)
+
+	BeforeEach(func() {
+		m1 = &migrationMock{
 			id:          time.Date(2001, 1, 1, 1, 1, 1, 1, time.UTC),
 			description: "GetDescription 1",
-			up:          true,
-			down:        true,
 		}
 
-		m2 := &migrationMock{
+		m2 = &migrationMock{
 			id:          time.Date(2001, 1, 1, 1, 1, 1, 0, time.UTC),
 			description: "GetDescription 2",
-			up:          true,
-			down:        false,
 		}
 
-		m3 := &migrationMock{
+		m3 = &migrationMock{
 			id:          time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC),
 			description: "GetDescription 3",
-			up:          true,
-			down:        false,
 		}
+	})
 
-		It("It should register migrations", func() {
+	Describe("Register", func() {
+		It("should register migrations", func() {
 			d := migration.NewCodeSource()
 			d.Register(m1)
 			d.Register(m2)
@@ -74,7 +88,23 @@ var _ = Describe("Source Code", func() {
 			Expect(list).To(HaveLen(2))
 		})
 
-		It("It should register migrations with inverted order", func() {
+		It("should register migrations ordered by ID", func() {
+			d := migration.NewCodeSource()
+			d.Register(m1)
+			d.Register(m2)
+			d.Register(m3)
+
+			list, err := d.List()
+			Expect(err).To(BeNil())
+			Expect(list).To(HaveLen(3))
+			Expect(list[0].GetDescription()).To(Equal("GetDescription 3"))
+			Expect(list[1].GetDescription()).To(Equal("GetDescription 2"))
+			Expect(list[2].GetDescription()).To(Equal("GetDescription 1"))
+		})
+	})
+
+	Describe("List", func() {
+		It("should list migrations", func() {
 			d := migration.NewCodeSource()
 			d.Register(m1)
 			d.Register(m2)

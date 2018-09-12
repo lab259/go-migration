@@ -12,8 +12,9 @@ type MigrationSummary struct {
 	direction MigrationDirection
 	duration  time.Duration
 	failed    bool
-	failure   *MigrationFailure
+	failure   error
 	panicked  bool
+	panicData interface{}
 }
 
 func NewMigrationSummary(migration Migration) *MigrationSummary {
@@ -28,18 +29,19 @@ func (summary *MigrationSummary) Failed() bool {
 
 func (summary *MigrationSummary) setFailed(e error) {
 	summary.failed = true
-	summary.failure = &MigrationFailure{
-		Message: e.Error(),
-		// TODO
-	}
+	summary.failure = e
 }
 
-func (summary *MigrationSummary) Failure() *MigrationFailure {
+func (summary *MigrationSummary) Failure() error {
 	return summary.failure
 }
 
 func (summary *MigrationSummary) Panicked() bool {
 	return summary.panicked
+}
+
+func (summary *MigrationSummary) PanicData() interface{} {
+	return summary.panicData
 }
 
 func (summary *MigrationSummary) Direction() MigrationDirection {

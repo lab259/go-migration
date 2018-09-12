@@ -5,12 +5,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/jamillosantos/migration"
+	"."
 )
 
 var _ = Describe("Source Directory", func() {
 	Describe("List", func() {
-		It("It should list the files of a directory", func() {
+		It("should list the files of a directory", func() {
 			d := migration.DirectorySource{
 				Directory: "test/migrations1",
 				Extension: "sql",
