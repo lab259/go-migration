@@ -1,6 +1,6 @@
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/go-gormigrate/gormigrate/blob/master/LICENSE)
-[![Build Status](https://travis-ci.org/jamillosantos/migration.svg?branch=master)](https://travis-ci.org/jamillosantos/migration)
-[![Coverage Status](https://coveralls.io/repos/github/jamillosantos/migration/badge.svg?branch=master)](https://coveralls.io/github/jamillosantos/migration?branch=master)
+[![CircleCI](https://circleci.com/gh/lab259/go-migration/tree/master.svg?style=shield)](https://circleci.com/gh/lab259/go-migration/tree/master)
+[![codecov](https://codecov.io/gh/lab259/go-migration/branch/master/graph/badge.svg)](https://codecov.io/gh/lab259/go-migration)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jamillosantos/migration)](https://goreportcard.com/report/github.com/jamillosantos/migration)
 
 # Migration
@@ -10,7 +10,7 @@ A simple migration framework for Golang.
 ## Installation
 
 ```bash
-go get github.com/jamillosantos/migration
+go get github.com/lab259/go-migration
 ```
 
 ## Getting started
