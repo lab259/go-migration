@@ -4,6 +4,8 @@ import (
 	"os"
 )
 
+// ArgsRunner is the Runner that will provide the default implementation of
+// Runner that captures params from the arguments.
 type ArgsRunner struct {
 	reporter Reporter
 	manager  Manager
@@ -11,6 +13,7 @@ type ArgsRunner struct {
 	exitFnc  func(code int)
 }
 
+// NewArgsRunner returns a new instance of a ArgsRunner.
 func NewArgsRunner(reporter Reporter, manager Manager, exitFnc func(code int)) Runner {
 	return &ArgsRunner{
 		reporter: reporter,
@@ -19,6 +22,7 @@ func NewArgsRunner(reporter Reporter, manager Manager, exitFnc func(code int)) R
 	}
 }
 
+// NewArgsRunnerCustom create a new instance of the Runer with custom arguments.
 func NewArgsRunnerCustom(reporter Reporter, manager Manager, args ...string) Runner {
 	return &ArgsRunner{
 		reporter: reporter,
@@ -27,6 +31,7 @@ func NewArgsRunnerCustom(reporter Reporter, manager Manager, args ...string) Run
 	}
 }
 
+// Run performs the actions based on the arguments captured.
 func (runner *ArgsRunner) Run() {
 	args := runner.args
 	if len(args) > 0 {

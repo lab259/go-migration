@@ -26,37 +26,37 @@ func (target *nopTarget) SetVersion(version time.Time) error {
 }
 
 type nopReporter struct {
-	beforeMigration func(summary *migration.MigrationSummary, err error)
+	beforeMigration func(summary *migration.Summary, err error)
 }
 
-func (reporter *nopReporter) BeforeMigration(summary migration.MigrationSummary, err error) {
+func (reporter *nopReporter) BeforeMigration(summary migration.Summary, err error) {
 	if reporter.beforeMigration != nil {
 		reporter.beforeMigration(&summary, err)
 	}
 }
 
-func (reporter *nopReporter) MigrationSummary(summary *migration.MigrationSummary, err error) {
+func (reporter *nopReporter) MigrationSummary(summary *migration.Summary, err error) {
 }
 
-func (reporter *nopReporter) AfterMigration(summary migration.MigrationSummary, err error) {
+func (reporter *nopReporter) AfterMigration(summary migration.Summary, err error) {
 }
 
 func (reporter *nopReporter) BeforeMigrate(migrations []migration.Migration) {
 }
 
-func (reporter *nopReporter) AfterMigrate(migrations []*migration.MigrationSummary, err error) {
+func (reporter *nopReporter) AfterMigrate(migrations []*migration.Summary, err error) {
 }
 
 func (reporter *nopReporter) BeforeRewind(migrations []migration.Migration) {
 }
 
-func (reporter *nopReporter) AfterRewind(migrations []*migration.MigrationSummary, err error) {
+func (reporter *nopReporter) AfterRewind(migrations []*migration.Summary, err error) {
 }
 
 func (reporter *nopReporter) BeforeReset(doMigrations []migration.Migration, undoMigrations []migration.Migration) {
 }
 
-func (reporter *nopReporter) AfterReset(rewindSummary []*migration.MigrationSummary, migrateSummary []*migration.MigrationSummary, err error) {
+func (reporter *nopReporter) AfterReset(rewindSummary []*migration.Summary, migrateSummary []*migration.Summary, err error) {
 }
 
 func (reporter *nopReporter) ListPending(migrations []migration.Migration, err error) {
@@ -240,8 +240,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -267,8 +267,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -299,8 +299,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -349,8 +349,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -385,8 +385,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -416,8 +416,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -459,8 +459,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -489,8 +489,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -519,8 +519,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -561,8 +561,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -609,8 +609,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -645,8 +645,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
 			})
@@ -676,8 +676,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
@@ -685,7 +685,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m1))
 
 			version, err := target.Version()
@@ -698,8 +698,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
@@ -707,7 +707,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m1))
 
 			version, err := target.Version()
@@ -717,8 +717,8 @@ var _ = Describe("ManagerDefault", func() {
 			// Second
 			beforeMigrationCalled = false
 			summary, err = manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m2))
 					beforeMigrationCalled = true
 				},
@@ -726,7 +726,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m2))
 
 			version, err = target.Version()
@@ -736,8 +736,8 @@ var _ = Describe("ManagerDefault", func() {
 			// Third
 			beforeMigrationCalled = false
 			summary, err = manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m3))
 					beforeMigrationCalled = true
 				},
@@ -745,7 +745,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m3))
 
 			version, err = target.Version()
@@ -762,15 +762,15 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m5DoneErr))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(err).To(Equal(m5DoneErr.doneErr))
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m5DoneErr))
 			Expect(summary.Failed()).To(BeTrue())
 			Expect(summary.Failure()).To(Equal(m5DoneErr.doneErr))
@@ -796,15 +796,15 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m))
 			Expect(summary.Failed()).To(BeTrue())
 			Expect(summary.Failure()).ToNot(BeNil())
@@ -831,15 +831,15 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionDo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 			Expect(summary.Migration).To(Equal(m))
 			Expect(summary.Failed()).To(BeFalse())
 			Expect(summary.Failure()).To(BeNil())
@@ -858,8 +858,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
@@ -867,7 +867,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m1))
 
 			version, err := target.Version()
@@ -880,8 +880,8 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m3))
 					beforeMigrationCalled = true
 				},
@@ -889,7 +889,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m3))
 
 			version, err := target.Version()
@@ -899,8 +899,8 @@ var _ = Describe("ManagerDefault", func() {
 			// Second
 			beforeMigrationCalled = false
 			summary, err = manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m2))
 					beforeMigrationCalled = true
 				},
@@ -908,7 +908,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m2))
 
 			version, err = target.Version()
@@ -918,8 +918,8 @@ var _ = Describe("ManagerDefault", func() {
 			// Third
 			beforeMigrationCalled = false
 			summary, err = manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
@@ -927,7 +927,7 @@ var _ = Describe("ManagerDefault", func() {
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m1))
 
 			version, err = target.Version()
@@ -944,15 +944,15 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m4UndoneErr))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(err).To(Equal(m4UndoneErr.undoneErr))
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m4UndoneErr))
 			Expect(summary.Failed()).To(BeTrue())
 			Expect(summary.Failure()).To(Equal(m4UndoneErr.undoneErr))
@@ -978,15 +978,15 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m))
 			Expect(summary.Failed()).To(BeTrue())
 			Expect(summary.Failure()).ToNot(BeNil())
@@ -1013,15 +1013,15 @@ var _ = Describe("ManagerDefault", func() {
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
-				beforeMigration: func(summary *migration.MigrationSummary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(beforeMigrationCalled).To(BeTrue())
-			Expect(summary.Direction()).To(Equal(migration.MigrationDirectionUndo))
+			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 			Expect(summary.Migration).To(Equal(m))
 			Expect(summary.Failed()).To(BeFalse())
 			Expect(summary.Failure()).To(BeNil())

@@ -15,9 +15,9 @@ type Manager interface {
 	Target() Target
 	MigrationsExecuted() ([]Migration, error)
 	MigrationsPending() ([]Migration, error)
-	Migrate(listener Reporter) ([]*MigrationSummary, error)
-	Rewind(listener Reporter) ([]*MigrationSummary, error)
-	Reset(listener Reporter) ([]*MigrationSummary, []*MigrationSummary, error)
-	Do(listener Reporter) (*MigrationSummary, error)
-	Undo(listener Reporter) (*MigrationSummary, error)
+	Migrate(listener Reporter) ([]*Summary, error)
+	Rewind(listener Reporter) ([]*Summary, error)
+	Reset(listener Reporter) ([]*Summary, []*Summary, error)
+	Do(listener Reporter) (*Summary, error)
+	Undo(listener Reporter) (*Summary, error)
 }

@@ -5,18 +5,18 @@ package migration
 // listener `Before`. Afterward, if it does not return any error, the listener's
 // `After` is called.
 type Reporter interface {
-	BeforeMigration(migration MigrationSummary, err error)
-	MigrationSummary(migration *MigrationSummary, err error)
-	AfterMigration(migration MigrationSummary, err error)
+	BeforeMigration(migration Summary, err error)
+	MigrationSummary(migration *Summary, err error)
+	AfterMigration(migration Summary, err error)
 
 	BeforeMigrate(migrations []Migration)
-	AfterMigrate(migrations []*MigrationSummary, err error)
+	AfterMigrate(migrations []*Summary, err error)
 
 	BeforeRewind(migrations []Migration)
-	AfterRewind(migrations []*MigrationSummary, err error)
+	AfterRewind(migrations []*Summary, err error)
 
 	BeforeReset(doMigrations []Migration, undoMigrations []Migration)
-	AfterReset(rewindSummary []*MigrationSummary, migrateSummary []*MigrationSummary, err error)
+	AfterReset(rewindSummary []*Summary, migrateSummary []*Summary, err error)
 
 	ListPending(migrations []Migration, err error)
 	ListExecuted(migrations []Migration, err error)

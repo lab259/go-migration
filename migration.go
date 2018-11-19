@@ -5,20 +5,26 @@ import (
 	"time"
 )
 
-type MigrationDirection uint
+// Direction is the enum that represents the direction of the migration.
+//
+// Its possible values are `MigrationDirectionDo` and `MigrationDirectionUndo`.
+type Direction uint
 
 const (
-	MigrationDirectionDo   MigrationDirection = iota
-	MigrationDirectionUndo MigrationDirection = iota
+	// DirectionDo is the forward direction.
+	DirectionDo Direction = iota
+	// DirectionUndo is the backwards direction.
+	DirectionUndo Direction = iota
 )
 
-const MigrationIdFormat = "20060102150405"
+const migrationIDFormat = "20060102150405"
 
 // DefaultMigrationTable is the default name of the migrations table.
 const DefaultMigrationTable = "_migrations"
 
-func NewMigrationId(str string) time.Time {
-	result, err := time.Parse(MigrationIdFormat, str)
+// NewMigrationID creates a new ID from a string.
+func NewMigrationID(str string) time.Time {
+	result, err := time.Parse(migrationIDFormat, str)
 	if err == nil {
 		return result
 	}

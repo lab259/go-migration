@@ -9,7 +9,7 @@ var (
 
 	styleNormal         = color.New(color.FgHiBlack).SprintfFunc()
 	styleMigrationTitle = color.New(color.FgWhite).SprintfFunc()
-	styleMigrationId    = color.New(color.FgCyan).SprintfFunc()
+	styleMigrationID    = color.New(color.FgCyan).SprintfFunc()
 
 	styleDuration         = color.New(color.FgWhite).SprintfFunc()
 	styleDurationSlow     = color.New(color.FgYellow).SprintfFunc()

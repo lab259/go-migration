@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// BaseMigration is the default structure that all base migrations returns.
 type BaseMigration struct {
 	id          time.Time
 	description string
@@ -87,12 +88,12 @@ func NewCodeMigration(handlers ...Handler) *DefaultMigration {
 	}
 }
 
-// Up calls the up action of the migration.
+// Do calls the up action of the migration.
 func (m *DefaultMigration) Do() error {
 	return m.do()
 }
 
-// Down calls the down action of the migration.
+// Undo calls the down action of the migration.
 func (m *DefaultMigration) Undo() error {
 	return m.undo()
 }

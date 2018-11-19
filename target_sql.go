@@ -14,7 +14,7 @@ type MySQLTarget struct {
 	tableName  string
 }
 
-// NewSQLDB returns a new instance of the migration.MySQLTarget
+// NewMySQL returns a new instance of the migration.MySQLTarget
 func NewMySQL(conn *sql.DB) *MySQLTarget {
 	return &MySQLTarget{
 		tableName:  DefaultMigrationTable,
@@ -90,7 +90,7 @@ func (target *MySQLTarget) SetTableName(collection string) *MySQLTarget {
 	return target
 }
 
-// Session returns the mgo.Session reference of this target.
+// Connection returns the mgo.Session reference of this target.
 func (target *MySQLTarget) Connection() *sql.DB {
 	return target.connection
 }

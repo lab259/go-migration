@@ -6,18 +6,19 @@ import (
 	"os"
 )
 
+// DefaultReporter is the default implementation of a Reporter.
 type DefaultReporter struct {
 	writer  io.Writer
 	exitFnc func(code int)
 }
 
+// NewDefaultReporter returns an instance of a DefaultReporter.
 func NewDefaultReporter() *DefaultReporter {
-	return &DefaultReporter{
-		writer:  os.Stdout,
-		exitFnc: os.Exit,
-	}
+	return NewDefaultReporterWithParams(os.Stdout, os.Exit)
 }
 
+// NewDefaultReporterWithParams initializes an instance of a DefaultReporter
+// with its params.
 func NewDefaultReporterWithParams(w io.Writer, exitFnc func(code int)) *DefaultReporter {
 	return &DefaultReporter{
 		writer:  w,
@@ -33,27 +34,31 @@ func (reporter *DefaultReporter) print(args ...interface{}) {
 	fmt.Fprint(reporter.writer, args...)
 }
 
+// Failure reports a failure and writes it down.
 func (reporter *DefaultReporter) Failure(err error) {
 	reporter.printLn(err)
 }
 
+// Exit calls the exit function of the reporter.
 func (reporter *DefaultReporter) Exit(code int) {
 	reporter.exitFnc(code)
 }
 
-func (reporter *DefaultReporter) BeforeMigration(summary MigrationSummary, err error) {
-	if summary.Direction() == MigrationDirectionDo {
+// BeforeMigration is called by the Manager right before a migration is ran.
+func (reporter *DefaultReporter) BeforeMigration(summary Summary, err error) {
+	if summary.Direction() == DirectionDo {
 		reporter.print(styleNormal("  Applying ["))
 	} else {
 		reporter.print(styleNormal("  Rewinding ["))
 	}
-	reporter.print(styleMigrationId(summary.Migration.GetID().Format(MigrationIdFormat)))
+	reporter.print(styleMigrationID(summary.Migration.GetID().Format(migrationIDFormat)))
 	reporter.print(styleNormal("] "))
 	reporter.print(styleMigrationTitle(summary.Migration.GetDescription()))
 	reporter.print(styleNormal("... "))
 }
 
-func (reporter *DefaultReporter) AfterMigration(summary MigrationSummary, err error) {
+// AfterMigration is called by the Manager right after a migrations is ran.
+func (reporter *DefaultReporter) AfterMigration(summary Summary, err error) {
 	if summary.Failed() {
 		reporter.print(styleError("Failed"))
 	} else if summary.Panicked() {
@@ -80,6 +85,7 @@ func (reporter *DefaultReporter) AfterMigration(summary MigrationSummary, err er
 	}
 }
 
+// BeforeMigrate is called right before the process of migration is triggered.
 func (reporter *DefaultReporter) BeforeMigrate(migrations []Migration) {
 	if len(migrations) == 0 {
 		reporter.noMigrationsPending()
@@ -88,7 +94,8 @@ func (reporter *DefaultReporter) BeforeMigrate(migrations []Migration) {
 	}
 }
 
-func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, err error) {
+// AfterMigrate is called right after the process of migration is completed.
+func (reporter *DefaultReporter) AfterMigrate(migrations []*Summary, err error) {
 	if err != nil {
 		reporter.Failure(err)
 		reporter.Exit(11)
@@ -108,6 +115,7 @@ func (reporter *DefaultReporter) AfterMigrate(migrations []*MigrationSummary, er
 	}
 }
 
+// BeforeRewind is called right before the process of rewinding is triggered.
 func (reporter *DefaultReporter) BeforeRewind(migrations []Migration) {
 	if len(migrations) == 0 {
 		reporter.noMigrationsExecuted()
@@ -116,7 +124,8 @@ func (reporter *DefaultReporter) BeforeRewind(migrations []Migration) {
 	}
 }
 
-func (reporter *DefaultReporter) AfterRewind(migrations []*MigrationSummary, err error) {
+// AfterRewind is called right after the process of rewinding is completed.
+func (reporter *DefaultReporter) AfterRewind(migrations []*Summary, err error) {
 	executed := 0
 	failed := 0
 	for _, m := range migrations {
@@ -132,18 +141,21 @@ func (reporter *DefaultReporter) AfterRewind(migrations []*MigrationSummary, err
 	}
 }
 
+// BeforeReset is called right before the process of reseting is triggered.
 func (reporter *DefaultReporter) BeforeReset(rewindSummary []Migration, migrateSummary []Migration) {
 	// TODO
 }
 
-func (reporter *DefaultReporter) AfterReset(rewindSummary []*MigrationSummary, migrateSummary []*MigrationSummary, err error) {
+// AfterReset is called right before the process of reseting is completed.
+func (reporter *DefaultReporter) AfterReset(rewindSummary []*Summary, migrateSummary []*Summary, err error) {
 	reporter.printLn()
 	reporter.AfterRewind(rewindSummary, err)
 	reporter.AfterMigrate(migrateSummary, err)
 	reporter.printLn()
 }
 
-func (reporter *DefaultReporter) MigrationSummary(migration *MigrationSummary, err error) {
+// MigrationSummary prints the summary of the migration.
+func (reporter *DefaultReporter) MigrationSummary(migration *Summary, err error) {
 	if migration == nil && err == nil {
 		reporter.printLn(styleWarning("  Nothing to be done"))
 	}
@@ -155,6 +167,7 @@ func (reporter *DefaultReporter) noMigrationsPending() {
 	reporter.printLn()
 }
 
+// ListPending reports the list of the migrations peding to be executed.
 func (reporter *DefaultReporter) ListPending(migrations []Migration, err error) {
 	if err != nil {
 		reporter.printLn(styleError(err.Error()))
@@ -166,7 +179,7 @@ func (reporter *DefaultReporter) ListPending(migrations []Migration, err error) 
 		reporter.printLn(fmt.Sprintf("  %d migrations pending:", len(migrations)))
 		for i, m := range migrations {
 			reporter.print(styleNormal(fmt.Sprintf("    %d) [", i+1)))
-			reporter.print(styleMigrationId(m.GetID().Format(MigrationIdFormat)))
+			reporter.print(styleMigrationID(m.GetID().Format(migrationIDFormat)))
 			reporter.print(styleNormal("] "))
 			reporter.printLn(styleMigrationTitle(m.GetDescription()))
 		}
@@ -179,6 +192,7 @@ func (reporter *DefaultReporter) noMigrationsExecuted() {
 	reporter.printLn("")
 }
 
+// ListExecuted reports the list of the migrations that were executed.
 func (reporter *DefaultReporter) ListExecuted(migrations []Migration, err error) {
 	if err != nil {
 		reporter.printLn(styleError(err.Error()))
@@ -188,7 +202,7 @@ func (reporter *DefaultReporter) ListExecuted(migrations []Migration, err error)
 		reporter.printLn(styleWarning(fmt.Sprintf("  %d migrations executed:", len(migrations))))
 		for i, m := range migrations {
 			reporter.print(styleNormal(fmt.Sprintf("  %d) [", i+1)))
-			reporter.print(styleMigrationId(m.GetID().Format(MigrationIdFormat)))
+			reporter.print(styleMigrationID(m.GetID().Format(migrationIDFormat)))
 			reporter.print(styleNormal("] "))
 			reporter.printLn(styleMigrationTitle(m.GetDescription()))
 		}
@@ -198,6 +212,7 @@ func (reporter *DefaultReporter) ListExecuted(migrations []Migration, err error)
 	reporter.printLn()
 }
 
+// Usage prints the usage of the migration command.
 func (reporter *DefaultReporter) Usage() {
 	reporter.printLn("Usage:", os.Args[0], "[migrate | rewind | do | undo | executed | pending]")
 	reporter.printLn()
@@ -211,10 +226,13 @@ func (reporter *DefaultReporter) Usage() {
 	reporter.printLn()
 }
 
+// CommandNotFound reports the command executed by the migration tool was not
+// found.
 func (reporter *DefaultReporter) CommandNotFound(command string) {
 	reporter.printLn(fmt.Sprintf("Command %s was not found", command))
 }
 
+// NoCommand gets called when no command is provided to the migration tool.
 func (reporter *DefaultReporter) NoCommand() {
 	reporter.Usage()
 }

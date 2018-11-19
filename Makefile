@@ -38,6 +38,9 @@ dep-update:
 vet:
 	@$(GOPATHCMD) go vet ./...
 
+lint:
+	@$(GOPATHCMD) golint
+
 fmt:
 	@$(GOPATHCMD) go fmt ./...
 

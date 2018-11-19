@@ -32,7 +32,7 @@ func (m *FileMigration) GetDescription() string {
 	return m.description
 }
 
-// Up implements the migration.Migration.Up by running all SQLs inside of the
+// Do implements the migration.Migration.Up by running all SQLs inside of the
 // [migration.FileMigration.baseFile].up.sql file.
 //
 // If the file does not exists, it returns an error.
@@ -41,7 +41,7 @@ func (m *FileMigration) Do() error {
 	return nil
 }
 
-// Down implements the migration.Migration.Down by running all SQLs inside of
+// Undo implements the migration.Migration.Down by running all SQLs inside of
 // the [migration.FileMigration.baseFile].down.sql file.
 //
 // If the file does not exists, it returns an error.

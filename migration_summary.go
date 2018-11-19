@@ -2,14 +2,11 @@ package migration
 
 import "time"
 
-type MigrationFailure struct {
-	// TODO
-	Message string
-}
-
-type MigrationSummary struct {
+// Summary is the record that keeps all the data collected while the migration
+// was ran.
+type Summary struct {
 	Migration Migration
-	direction MigrationDirection
+	direction Direction
 	duration  time.Duration
 	failed    bool
 	failure   error
@@ -17,33 +14,39 @@ type MigrationSummary struct {
 	panicData interface{}
 }
 
-func NewMigrationSummary(migration Migration) *MigrationSummary {
-	return &MigrationSummary{
+// NewSummary creates a new summary based on a migration instance.
+func NewSummary(migration Migration) *Summary {
+	return &Summary{
 		Migration: migration,
 	}
 }
 
-func (summary *MigrationSummary) Failed() bool {
+// Failed returns if the migration failed.
+func (summary *Summary) Failed() bool {
 	return summary.failed
 }
 
-func (summary *MigrationSummary) setFailed(e error) {
+func (summary *Summary) setFailed(e error) {
 	summary.failed = true
 	summary.failure = e
 }
 
-func (summary *MigrationSummary) Failure() error {
+// Failure returns the reason because the migration failed.
+func (summary *Summary) Failure() error {
 	return summary.failure
 }
 
-func (summary *MigrationSummary) Panicked() bool {
+// Panicked is a flag that is returned when the tests panicks.
+func (summary *Summary) Panicked() bool {
 	return summary.panicked
 }
 
-func (summary *MigrationSummary) PanicData() interface{} {
+// PanicData is the stores the data from the panic recovery function.
+func (summary *Summary) PanicData() interface{} {
 	return summary.panicData
 }
 
-func (summary *MigrationSummary) Direction() MigrationDirection {
+// Direction is the direction the migrations ran.
+func (summary *Summary) Direction() Direction {
 	return summary.direction
 }

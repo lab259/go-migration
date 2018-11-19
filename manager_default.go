@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// ErrMigrationPanicked is the error returned when a migrations panics.
 var ErrMigrationPanicked = errors.New("migration panicked")
 
 // ManagerDefault is a default implementation of a Manager. It provides, via
@@ -15,7 +16,7 @@ type ManagerDefault struct {
 	target Target
 }
 
-// NewManager creates and returns a migration.Manager implementation
+// NewDefaultManager creates and returns a migration.Manager implementation
 // (`migration.ManagerDefault`) based on a target and source.
 func NewDefaultManager(target Target, source Source) Manager {
 	return &ManagerDefault{
@@ -78,8 +79,8 @@ func (manager *ManagerDefault) MigrationsPending() ([]Migration, error) {
 	return nil, err
 }
 
-// MigrationsDone returns a list of migrations that were executed. It uses the
-// migration.Manager.MigrationsAfter passing on the current version from
+// MigrationsExecuted returns a list of migrations that were executed. It uses
+// the migration.Manager.MigrationsAfter passing on the current version from
 // migration.Manager.Target.Version.
 func (manager *ManagerDefault) MigrationsExecuted() ([]Migration, error) {
 	version, err := manager.target.Version()
@@ -95,7 +96,7 @@ func (manager *ManagerDefault) MigrationsExecuted() ([]Migration, error) {
 // Before the execution of the migrations, it calls the reporter.Before method.
 // After the migration is executed, if it returns no error, it calls the
 // reporter.After method.
-func (manager *ManagerDefault) Do(reporter Reporter) (*MigrationSummary, error) {
+func (manager *ManagerDefault) Do(reporter Reporter) (*Summary, error) {
 	migrations, err := manager.MigrationsPending()
 	if err != nil {
 		return nil, err
@@ -107,10 +108,10 @@ func (manager *ManagerDefault) Do(reporter Reporter) (*MigrationSummary, error) 
 	return manager.do(migrations[0], reporter)
 }
 
-func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *MigrationSummary, err error) {
-	summary = &MigrationSummary{
+func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Summary, err error) {
+	summary = &Summary{
 		Migration: m,
-		direction: MigrationDirectionDo,
+		direction: DirectionDo,
 	}
 	reporter.BeforeMigration(*summary, nil)
 
@@ -153,7 +154,7 @@ func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Migr
 // Before the execution of the migrations, it calls the reporter.Before method.
 // After the migration is executed, if it returns no error, it calls the
 // reporter.After method.
-func (manager *ManagerDefault) Undo(reporter Reporter) (*MigrationSummary, error) {
+func (manager *ManagerDefault) Undo(reporter Reporter) (*Summary, error) {
 	migrations, err := manager.MigrationsExecuted()
 	if err != nil {
 		return nil, err
@@ -177,10 +178,10 @@ func (manager *ManagerDefault) Undo(reporter Reporter) (*MigrationSummary, error
 	return summary, err
 }
 
-func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*MigrationSummary, error) {
-	summary := &MigrationSummary{
+func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*Summary, error) {
+	summary := &Summary{
 		Migration: m,
-		direction: MigrationDirectionUndo,
+		direction: DirectionUndo,
 	}
 	reporter.BeforeMigration(*summary, nil)
 
@@ -220,7 +221,7 @@ func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*MigrationS
 }
 
 // Migrate brings the database to the latest migration.
-func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*MigrationSummary, error) {
+func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
 	version, err := manager.target.Version()
 	if err != nil {
 		return nil, err
@@ -230,7 +231,7 @@ func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*MigrationSummary, 
 		return nil, err
 	}
 	reporter.BeforeMigrate(list)
-	result := make([]*MigrationSummary, 0, len(list))
+	result := make([]*Summary, 0, len(list))
 	for i := 0; i < len(list); i++ {
 		summary, err := manager.do(list[i], reporter)
 		if summary != nil {
@@ -251,7 +252,7 @@ func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*MigrationSummary, 
 // It lists all the executed migrations and executes their
 // migration.Migrate.Down in a inverted order, virtually bringing the database
 // to its original form.
-func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*MigrationSummary, error) {
+func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*Summary, error) {
 	version, err := manager.target.Version()
 	if err != nil {
 		return nil, err
@@ -261,7 +262,7 @@ func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*MigrationSummary, e
 		return nil, err
 	}
 	reporter.BeforeRewind(list)
-	result := make([]*MigrationSummary, 0, len(list))
+	result := make([]*Summary, 0, len(list))
 	for i := len(list) - 1; i > -1; i-- {
 		summary, err := manager.undo(list[i], reporter)
 		if summary != nil {
@@ -278,7 +279,7 @@ func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*MigrationSummary, e
 }
 
 // Reset rewind all the migrations, then migrates to the latest.
-func (manager *ManagerDefault) Reset(reporter Reporter) ([]*MigrationSummary, []*MigrationSummary, error) {
+func (manager *ManagerDefault) Reset(reporter Reporter) ([]*Summary, []*Summary, error) {
 	migrationsBack, err := manager.Rewind(reporter)
 	if err != nil {
 		return migrationsBack, nil, err
