@@ -1,0 +1,31 @@
+version: 2
+jobs:
+  build:
+    docker:
+    - image: circleci/golang:1.10.3
+
+    working_directory: /go/src/github.com/lab259/go-migration
+    steps:
+    - checkout
+
+    - run:
+        name: Install Dep
+        command: |
+          go get -u github.com/tools/godep
+
+    - run:
+        name: Install Ginkgo
+        command: |
+          go get -u github.com/onsi/ginkgo/ginkgo
+
+    - run:
+        name: Get dependencies
+        command: |
+          make dep-ensure
+
+    - run:
+        name: Run tests
+        command: |
+          make coverage-ci
+
+    - run: bash <(curl -s https://codecov.io/bash)
