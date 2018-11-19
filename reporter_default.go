@@ -212,7 +212,7 @@ func (reporter *DefaultReporter) Usage() {
 }
 
 func (reporter *DefaultReporter) CommandNotFound(command string) {
-	reporter.printLn(fmt.Sprintf("Command %s was not found"))
+	reporter.printLn(fmt.Sprintf("Command %s was not found", command))
 }
 
 func (reporter *DefaultReporter) NoCommand() {

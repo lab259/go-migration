@@ -83,9 +83,9 @@ func (reporter *nopReporter) NoCommand() {
 var _ = Describe("ManagerDefault", func() {
 
 	var (
-		target                     migration.Target
-		codeSource                 *migration.CodeSource
-		manager                    migration.Manager
+		target     migration.Target
+		codeSource *migration.CodeSource
+		manager    migration.Manager
 		m1, m2, m3,
 		m4UndoneErr, m5DoneErr,
 		m4UndonePanic, m5DonePanic *migrationMock

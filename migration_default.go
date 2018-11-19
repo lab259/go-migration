@@ -77,13 +77,13 @@ func NewCodeMigration(handlers ...Handler) *DefaultMigration {
 		if len(groups) == 3 {
 			id, err := time.Parse("20060102150405", groups[1])
 			if err != nil {
-				panic(fmt.Sprintf("the file name '%s' has an invalid datetime"))
+				panic(fmt.Sprintf("the file name '%s' has an invalid datetime", file))
 			}
 			return NewMigration(id, groups[2], handlers...)
 		}
-		panic(fmt.Sprintf("the file name '%s' has an invalid format"))
+		panic(fmt.Sprintf("the file name '%s' has an invalid format", file))
 	} else {
-		panic(fmt.Sprintf("the file name '%s' has an invalid format"))
+		panic(fmt.Sprintf("the file name '%s' has an invalid format", file))
 	}
 }
 
