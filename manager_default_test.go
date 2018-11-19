@@ -1,9 +1,9 @@
 package migration_test
 
 import (
+	"github.com/lab259/go-migration"
 	"time"
 
-	"."
 	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -83,9 +83,9 @@ func (reporter *nopReporter) NoCommand() {
 var _ = Describe("ManagerDefault", func() {
 
 	var (
-		target     migration.Target
-		codeSource *migration.CodeSource
-		manager    migration.Manager
+		target                     migration.Target
+		codeSource                 *migration.CodeSource
+		manager                    migration.Manager
 		m1, m2, m3,
 		m4UndoneErr, m5DoneErr,
 		m4UndonePanic, m5DonePanic *migrationMock
@@ -786,7 +786,7 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource = migration.NewCodeSource()
 			now := time.Now().UTC()
 			m := &migrationMock{
-				id: now,
+				id:            now,
 				donePanicData: errors.New("forced error"),
 			}
 			codeSource.Register(m)
@@ -821,7 +821,7 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource = migration.NewCodeSource()
 			now := time.Now().UTC()
 			m := &migrationMock{
-				id: now,
+				id:            now,
 				donePanicData: "panicked data",
 			}
 			codeSource.Register(m)
@@ -968,7 +968,7 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource = migration.NewCodeSource()
 			now := time.Now().UTC()
 			m := &migrationMock{
-				id: now,
+				id:              now,
 				undonePanicData: errors.New("forced error"),
 			}
 			codeSource.Register(m)
@@ -1003,7 +1003,7 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource = migration.NewCodeSource()
 			now := time.Now().UTC()
 			m := &migrationMock{
-				id: now,
+				id:              now,
 				undonePanicData: "panicked data",
 			}
 			codeSource.Register(m)

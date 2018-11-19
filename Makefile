@@ -2,7 +2,8 @@ VERSION ?= $(shell git describe --tags 2>/dev/null | cut -c 2-)
 TEST_FLAGS ?=
 REPO_OWNER ?= $(shell cd .. && basename "$$(pwd)")
 
-GOPATH=$(CURDIR)/.gopath
+GOPATH=$(CURDIR)/../../../../
+GOPATHCMD=GOPATH=$(GOPATH)
 
 COVERDIR=$(CURDIR)/.cover
 COVERAGEFILE=$(COVERDIR)/cover.out
@@ -12,12 +13,6 @@ test:
 
 test-watch:
 	@${GOPATHCMD} ginkgo watch -cover -r ./...
-
-deps:
-	@mkdir -p ${GOPATH}
-#	@GOPATH=$(GOPATH) go get -v -t ./...
-	@go list -f '{{join .Deps "\n"}}' . | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | GOPATH=${GOPATH} xargs go get -t -v
-
 
 coverage:
 	@mkdir -p $(COVERDIR)
@@ -33,6 +28,18 @@ coverage-ci:
 
 coverage-html:
 	@$(GOPATHCMD) go tool cover -html="${COVERAGEFILE}" -o .cover/report.html
+
+dep-ensure:
+	@$(GOPATHCMD) dep ensure -v
+
+dep-update:
+	@$(GOPATHCMD) dep ensure -v
+
+vet:
+	@$(GOPATHCMD) go vet ./...
+
+fmt:
+	@$(GOPATHCMD) go fmt ./...
 
 # example: fswatch -0 --exclude .godoc.pid --event Updated . | xargs -0 -n1 -I{} make docs
 docs:
@@ -56,7 +63,8 @@ release:
 
 .PHONY: build-cli clean test-short test test-with-flags deps html-coverage \
         restore-import-paths rewrite-import-paths list-external-deps release \
-        docs kill-docs open-docs kill-orphaned-docker-containers
+        docs kill-docs open-docs kill-orphaned-docker-containers dep-ensure \
+        dep-update
 
 SHELL = /bin/bash
 RAND = $(shell echo $$RANDOM)

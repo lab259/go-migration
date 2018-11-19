@@ -1,11 +1,10 @@
 package main
 
 import (
-	"../.."
-	"../../examples/mongo/db"
-	_ "../../examples/mongo/migrations"
 	"fmt"
 	"github.com/globalsign/mgo"
+	"github.com/lab259/go-migration"
+	"github.com/lab259/go-migration/examples/mongo/db"
 	"os"
 )
 

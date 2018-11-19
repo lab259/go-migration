@@ -1,9 +1,9 @@
 package migration_test
 
 import (
+	"github.com/lab259/go-migration"
 	"time"
 
-	"."
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
