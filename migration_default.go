@@ -67,6 +67,9 @@ func NewMigration(id time.Time, description string, handlers ...Handler) *Defaul
 
 var codeMigrationRegex = regexp.MustCompile("^([0-9]{4}[0-9]{2}[0-9]{2}[0-9]{2}[0-9]{2}[0-9]{2})_(.*).go$")
 
+// CodeMigrationDateFormat is the format understood by the CodeMigration
+var CodeMigrationDateFormat = "20060102150405"
+
 // NewCodeMigration uses the regex to extract data NewMigration.
 //
 // If a handler is provided it will assigned to the Up method. If a second is
@@ -76,7 +79,7 @@ func NewCodeMigration(handlers ...Handler) *DefaultMigration {
 	if ok {
 		groups := codeMigrationRegex.FindStringSubmatch(path.Base(file))
 		if len(groups) == 3 {
-			id, err := time.Parse("20060102150405", groups[1])
+			id, err := time.Parse(CodeMigrationDateFormat, groups[1])
 			if err != nil {
 				panic(fmt.Sprintf("the file name '%s' has an invalid datetime", file))
 			}
