@@ -2,6 +2,7 @@ package migration
 
 import (
 	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"time"
 )
 
@@ -27,6 +28,17 @@ func NewMongoDB(session *mgo.Session) *MongoDBTarget {
 	}
 }
 
+func (t *MongoDBTarget) runWithDB(cb func(db *mgo.Database) error) error {
+	sess := t.session.Clone()
+	defer sess.Close()
+
+	return cb(sess.DB(""))
+}
+
+func (t *MongoDBTarget) collection(db *mgo.Database) *mgo.Collection {
+	return db.C(t.collectionName)
+}
+
 // Version implements the migration.Target.Version by fetching the current
 // version of the database from the collection defined by
 // migration.MongoDBTarget.SetCollectionName.
@@ -34,39 +46,61 @@ func NewMongoDB(session *mgo.Session) *MongoDBTarget {
 // It returns the current version of the database.
 //
 // Any error returned by the MGo, will be passed up to the caller.
-func (t *MongoDBTarget) Version() (time.Time, error) {
-	sess := t.session.Clone()
-	defer sess.Close()
-
-	c := sess.DB("").C(t.collectionName)
-	var version mongoDBMigrationVersion
-	q := c.Find(nil)
-	if err := q.One(&version); err == nil {
-		return version.ID.UTC(), nil
-	} else if err == mgo.ErrNotFound {
-		return NoVersion, nil
-	} else {
-		return NoVersion, err
-	}
+func (t *MongoDBTarget) Version() (migrationID time.Time, err error) {
+	err = t.runWithDB(func(db *mgo.Database) error {
+		c := t.collection(db)
+		var version mongoDBMigrationVersion
+		q := c.Find(nil).Sort("-_id").Limit(1) // Most recent
+		if err = q.One(&version); err == nil {
+			migrationID = version.ID.UTC()
+			return nil
+		} else if err == mgo.ErrNotFound {
+			migrationID = NoVersion
+			return nil
+		}
+		migrationID = NoVersion
+		return err
+	})
+	return
 }
 
 // SetVersion implements the migration.Target.SetVersion by storing the passed
 // version on the database.
 //
 // It returns eny error returned by the MGo.
-func (t *MongoDBTarget) SetVersion(id time.Time) error {
-	sess := t.session.Clone()
-	defer sess.Close()
+func (t *MongoDBTarget) AddMigration(summary *Summary) error {
+	return t.runWithDB(func(db *mgo.Database) error {
+		c := t.collection(db)
 
-	sess.DB("").C(t.collectionName).DropCollection()
-	if id != NoVersion {
-		if err := sess.DB("").C(t.collectionName).Insert(&mongoDBMigrationVersion{
-			ID: id,
-		}); err != nil {
+		if _, err := c.Upsert(
+			bson.M{"_id": summary.Migration.GetID()},
+			&mongoDBMigrationVersion{
+				ID: summary.Migration.GetID(),
+			}); err != nil {
 			return err
 		}
+		return nil
+	})
+}
+
+func (t *MongoDBTarget) MigrationsExecuted() ([]time.Time, error) {
+	migrations := make([]mongoDBMigrationVersion, 0)
+	err := t.runWithDB(func(db *mgo.Database) error {
+		c := t.collection(db)
+		err := c.Find(nil).Sort("_id").All(&migrations)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	r := make([]time.Time, len(migrations))
+	for i, migration := range migrations {
+		r[i] = migration.ID
+	}
+	return r, nil
 }
 
 // SetCollectionName sets the name of the collection used to store the current

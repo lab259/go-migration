@@ -117,5 +117,19 @@ var _ = Describe("Source Code", func() {
 			Expect(list[1].GetDescription()).To(Equal("GetDescription 2"))
 			Expect(list[2].GetDescription()).To(Equal("GetDescription 1"))
 		})
+
+		It("should list migrations registered in an arbitrary order", func() {
+			d := migration.NewCodeSource()
+			d.Register(m3)
+			d.Register(m2)
+			d.Register(m1)
+
+			list, err := d.List()
+			Expect(err).To(BeNil())
+			Expect(list).To(HaveLen(3))
+			Expect(list[0].GetDescription()).To(Equal("GetDescription 3"))
+			Expect(list[1].GetDescription()).To(Equal("GetDescription 2"))
+			Expect(list[2].GetDescription()).To(Equal("GetDescription 1"))
+		})
 	})
 })

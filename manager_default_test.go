@@ -10,19 +10,83 @@ import (
 )
 
 type nopTarget struct {
-	version time.Time
+	executed []*migration.Summary
 }
 
 // Version returns the current version of the database.
 func (target *nopTarget) Version() (time.Time, error) {
-	return target.version, nil
+	max := migration.NoVersion
+	for _, m := range target.executed {
+		if m.Migration.GetID().After(max) {
+			max = m.Migration.GetID()
+		}
+	}
+	return max, nil
 }
 
-// SetVersion persists the version on the database (or any other mean
+// AddMigration persists the version on the database (or any other mean
 // necessary).
-func (target *nopTarget) SetVersion(version time.Time) error {
-	target.version = version
+func (target *nopTarget) AddMigration(summary *migration.Summary) error {
+	if target.executed == nil {
+		target.executed = make([]*migration.Summary, 0)
+	}
+	target.executed = append(target.executed, summary)
 	return nil
+}
+
+// AddMigration persists the version on the database (or any other mean
+// necessary).
+func (target *nopTarget) RemoveMigration(summary *migration.Summary) error {
+	if target.executed == nil {
+		target.executed = make([]*migration.Summary, 0)
+	}
+	for i := len(target.executed)-1; i >= 0; i-- {
+		if target.executed[i].Migration.GetID() == summary.Migration.GetID() {
+			target.executed = append(target.executed[:i], target.executed[i+1:]...)
+		}
+	}
+	return nil
+}
+
+// MigrationsExecuted returns the IDs of the migrations executed
+func (target *nopTarget) MigrationsExecuted() ([]time.Time, error) {
+	executed := make([]time.Time, len(target.executed))
+	for i, summary := range target.executed {
+		executed[i] = summary.Migration.GetID()
+	}
+	return executed, nil
+}
+
+type ErroredTarget struct {
+}
+
+// Version returns NoVersion
+func (target *ErroredTarget) Version() (time.Time, error) {
+	return migration.NoVersion, nil
+}
+
+// AddMigration does nothing
+func (target *ErroredTarget) AddMigration(summary *migration.Summary) error {
+	return errors.New("AddMigration: forced error")
+}
+
+// RemoveMigration does nothing
+func (target *ErroredTarget) RemoveMigration(summary *migration.Summary) error {
+	return errors.New("RemoveMigration: forced error")
+}
+
+// MigrationsExecuted returns an error
+func (target *ErroredTarget) MigrationsExecuted() ([]time.Time, error) {
+	return nil, errors.New("MigrationsExecuted: forced error")
+}
+
+type RemoveMigrationErroredTarget struct {
+	nopTarget
+}
+
+// RemoveMigration does nothing
+func (target *RemoveMigrationErroredTarget) RemoveMigration(summary *migration.Summary) error {
+	return errors.New("RemoveMigration: forced error")
 }
 
 type nopReporter struct {
@@ -53,7 +117,7 @@ func (reporter *nopReporter) BeforeRewind(migrations []migration.Migration) {
 func (reporter *nopReporter) AfterRewind(migrations []*migration.Summary, err error) {
 }
 
-func (reporter *nopReporter) BeforeReset(doMigrations []migration.Migration, undoMigrations []migration.Migration) {
+func (reporter *nopReporter) BeforeReset() {
 }
 
 func (reporter *nopReporter) AfterReset(rewindSummary []*migration.Summary, migrateSummary []*migration.Summary, err error) {
@@ -83,18 +147,16 @@ func (reporter *nopReporter) NoCommand() {
 var _ = Describe("ManagerDefault", func() {
 
 	var (
-		target     migration.Target
-		codeSource *migration.CodeSource
-		manager    migration.Manager
+		target                     migration.Target
+		codeSource                 *migration.CodeSource
+		manager                    migration.Manager
 		m1, m2, m3,
 		m4UndoneErr, m5DoneErr,
 		m4UndonePanic, m5DonePanic *migrationMock
 	)
 
 	BeforeEach(func() {
-		target = &nopTarget{
-			version: time.Now().UTC(),
-		}
+		target = &nopTarget{}
 
 		m1 = &migrationMock{
 			id:          time.Date(2000, 0, 0, 0, 0, 0, 0, time.UTC),
@@ -144,9 +206,7 @@ var _ = Describe("ManagerDefault", func() {
 	})
 
 	It("should create a new instance of the DefaultManager", func() {
-		t := &nopTarget{
-			version: time.Now().UTC(),
-		}
+		t := &nopTarget{}
 		cs := migration.NewCodeSource()
 		manager := migration.NewDefaultManager(t, cs)
 		Expect(manager).NotTo(BeNil())
@@ -156,15 +216,14 @@ var _ = Describe("ManagerDefault", func() {
 
 	Describe("MigrationsPending", func() {
 		It("should list pendent migrations when all migrations are new", func() {
-			target.SetVersion(m1.GetID().Add(-time.Nanosecond))
-
 			migrations, err := manager.MigrationsPending()
 			Expect(err).To(BeNil())
 			Expect(migrations).To(HaveLen(3))
 		})
 
 		It("should list pendent migrations when there is new and pendent migrations", func() {
-			target.SetVersion(time.Date(2001, 1, 1, 1, 1, 1, 0, time.UTC))
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
 
 			migrations, err := manager.MigrationsPending()
 			Expect(err).To(BeNil())
@@ -173,15 +232,19 @@ var _ = Describe("ManagerDefault", func() {
 		})
 
 		It("should list pendent migrations when there is new and pendent migrations 2", func() {
-			target.SetVersion(m2.GetID().Add(-time.Nanosecond))
+			target.AddMigration(migration.NewSummary(m1))
 
 			migrations, err := manager.MigrationsPending()
 			Expect(err).To(BeNil())
 			Expect(migrations).To(HaveLen(2))
+			Expect(migrations[0].GetID()).To(Equal(m2.GetID()))
+			Expect(migrations[1].GetID()).To(Equal(m3.GetID()))
 		})
 
 		It("should list no pendents", func() {
-			target.SetVersion(m3.GetID())
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
 
 			migrations, err := manager.MigrationsPending()
 			Expect(err).To(BeNil())
@@ -190,24 +253,42 @@ var _ = Describe("ManagerDefault", func() {
 	})
 
 	Describe("MigrationsExecuted", func() {
-		It("should list executed migrations when all migrations are old", func() {
-			target.SetVersion(m3.GetID())
-
+		It("should fail listing the migrations to be executed", func() {
+			manager := migration.NewDefaultManager(&ErroredTarget{}, codeSource)
 			migrations, err := manager.MigrationsExecuted()
-			Expect(err).To(BeNil())
-			Expect(migrations).To(HaveLen(3))
+			Expect(err).To(HaveOccurred())
+			Expect(migrations).To(BeNil())
+			Expect(err.Error()).To(Equal("MigrationsExecuted: forced error"))
 		})
 
-		It("should list executed migrations migrations", func() {
-			target.SetVersion(m3.GetID())
+		It("should list executed migrations", func() {
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
 
 			migrations, err := manager.MigrationsExecuted()
 			Expect(err).To(BeNil())
 			Expect(migrations).To(HaveLen(3))
+			Expect(migrations[0].GetID()).To(Equal(m1.GetID()))
+			Expect(migrations[1].GetID()).To(Equal(m2.GetID()))
+			Expect(migrations[2].GetID()).To(Equal(m3.GetID()))
+		})
+
+		It("should list executed migrations migrations added in arbitrary order", func() {
+			target.AddMigration(migration.NewSummary(m3))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m1))
+
+			migrations, err := manager.MigrationsExecuted()
+			Expect(err).To(BeNil())
+			Expect(migrations).To(HaveLen(3))
+			Expect(migrations[0].GetID()).To(Equal(m1.GetID()))
+			Expect(migrations[1].GetID()).To(Equal(m2.GetID()))
+			Expect(migrations[2].GetID()).To(Equal(m3.GetID()))
 		})
 
 		It("should list executed migrations when there is new and executed migrations", func() {
-			target.SetVersion(time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC))
+			target.AddMigration(migration.NewSummary(m1))
 
 			migrations, err := manager.MigrationsExecuted()
 			Expect(err).To(BeNil())
@@ -216,7 +297,7 @@ var _ = Describe("ManagerDefault", func() {
 		})
 
 		It("should list executed migrations when there is new and executed migrations 2", func() {
-			target.SetVersion(time.Date(2000, 1, 1, 1, 1, 3, 0, time.UTC))
+			target.AddMigration(migration.NewSummary(m1))
 
 			migrations, err := manager.MigrationsExecuted()
 			Expect(err).To(BeNil())
@@ -225,7 +306,7 @@ var _ = Describe("ManagerDefault", func() {
 		})
 
 		It("should list only the first one executed", func() {
-			target.SetVersion(m1.GetID())
+			target.AddMigration(migration.NewSummary(m1))
 
 			migrations, err := manager.MigrationsExecuted()
 			Expect(err).To(BeNil())
@@ -235,9 +316,29 @@ var _ = Describe("ManagerDefault", func() {
 	})
 
 	Describe("Migrate", func() {
-		It("should migrate all migrations", func() {
-			target.SetVersion(migration.NoVersion)
+		It("should fail adding the migration as executed", func() {
+			manager := migration.NewDefaultManager(&ErroredTarget{}, codeSource)
 
+			migrations := make([]migration.Migration, 0)
+			ms, err := manager.Migrate(&nopReporter{
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
+					migrations = append(migrations, summary.Migration)
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("AddMigration: forced error"))
+
+			Expect(ms).To(HaveLen(1))
+			Expect(ms[0].Migration).To(Equal(m1))
+
+			Expect(migrations).To(HaveLen(1))
+			Expect(migrations[0]).To(Equal(m1))
+
+			Expect(m1.done).To(BeTrue())
+		})
+
+		It("should migrate all migrations", func() {
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
 				beforeMigration: func(summary *migration.Summary, err error) {
@@ -263,7 +364,7 @@ var _ = Describe("ManagerDefault", func() {
 		})
 
 		It("should migrate only part of migrations", func() {
-			target.SetVersion(m1.GetID())
+			target.AddMigration(migration.NewSummary(m1))
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
@@ -293,9 +394,15 @@ var _ = Describe("ManagerDefault", func() {
 		})
 
 		It("should migration fail in the middle", func() {
-			target.SetVersion(m1.GetID().Add(-time.Hour))
-			codeSource.Register(m4UndoneErr)
-			codeSource.Register(m5DoneErr)
+			target.AddMigration(migration.NewSummary(m1))
+
+			erroredMigration := &migrationMock{
+				id:          m2.id.Add(time.Second),
+				description: "Errored migration",
+				doneErr:     errors.New("forced error"),
+			}
+
+			codeSource.Register(erroredMigration)
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
@@ -305,40 +412,29 @@ var _ = Describe("ManagerDefault", func() {
 				},
 			})
 			Expect(err).ToNot(BeNil())
-			Expect(err.Error()).To(ContainSubstring("m5 done forced error"))
+			Expect(err.Error()).To(ContainSubstring("forced error"))
 
-			Expect(ms).To(HaveLen(4))
-			Expect(ms[0].Migration).To(Equal(m1))
-			Expect(ms[1].Migration).To(Equal(m2))
-			Expect(ms[2].Migration).To(Equal(m4UndoneErr))
-			Expect(ms[3].Migration).To(Equal(m5DoneErr))
-			Expect(ms[3].Failed()).To(BeTrue())
-			Expect(ms[3].Failure()).ToNot(BeNil())
-			Expect(ms[3].Failure().Error()).To(ContainSubstring("m5 done forced error"))
+			Expect(ms).To(HaveLen(2))
+			Expect(ms[0].Migration.GetID()).To(Equal(m2.GetID()))
+			Expect(ms[1].Migration.GetID()).To(Equal(erroredMigration.GetID()))
+			Expect(ms[1].Failed()).To(BeTrue())
+			Expect(ms[1].Failure()).ToNot(BeNil())
+			Expect(ms[1].Failure().Error()).To(ContainSubstring("forced error"))
 
-			Expect(migrations).To(HaveLen(4))
-			Expect(migrations[0]).To(Equal(m1))
-			Expect(migrations[1]).To(Equal(m2))
-			Expect(migrations[2]).To(Equal(m4UndoneErr))
-			Expect(migrations[3]).To(Equal(m5DoneErr))
+			Expect(migrations).To(HaveLen(2))
+			Expect(migrations[0].GetID()).To(Equal(m2.GetID()))
+			Expect(migrations[1].GetID()).To(Equal(erroredMigration.GetID()))
 
-			Expect(m1.done).To(BeTrue())
-			Expect(m1.undone).To(BeFalse())
 			Expect(m2.done).To(BeTrue())
 			Expect(m2.undone).To(BeFalse())
-			Expect(m4UndoneErr.done).To(BeTrue())
-			Expect(m4UndoneErr.undone).To(BeFalse())
-			Expect(m5DoneErr.done).To(BeTrue())
-			Expect(m5DoneErr.undone).To(BeFalse())
-			Expect(m3.done).To(BeFalse())
-			Expect(m3.undone).To(BeFalse())
+			Expect(erroredMigration.done).To(BeTrue())
+			Expect(erroredMigration.undone).To(BeFalse())
 
-			Expect(manager.Target().Version()).To(Equal(m4UndoneErr.GetID()))
+			Expect(manager.Target().Version()).To(Equal(m2.GetID()))
 		})
 
 		It("should panic the migration with a non error panic data", func() {
 			now := time.Now().UTC()
-			target.SetVersion(now.Add(-time.Nanosecond))
 			codeSource = migration.NewCodeSource()
 			m := &migrationMock{
 				id:            now,
@@ -369,18 +465,18 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(m.done).To(BeTrue())
 			Expect(m.undone).To(BeFalse())
 
-			Expect(manager.Target().Version()).To(Equal(now.Add(-time.Nanosecond)))
+			Expect(manager.Target().Version()).To(Equal(migration.NoVersion))
 		})
 
 		It("should panic the migration with a panic data as an error", func() {
-			now := time.Now().UTC()
-			target.SetVersion(now.Add(-time.Nanosecond))
+			target.AddMigration(migration.NewSummary(m1))
 			codeSource = migration.NewCodeSource()
-			m := &migrationMock{
-				id:            now,
+			migrationErrored := &migrationMock{
+				id:            m1.GetID().Add(time.Second),
 				donePanicData: errors.New("this is the panic data"),
 			}
-			codeSource.Register(m)
+			codeSource.Register(migrationErrored)
+			// target.AddMigration(migration.NewSummary(migrationErrored))
 			manager := migration.NewDefaultManager(target, codeSource)
 
 			migrations := make([]migration.Migration, 0)
@@ -393,7 +489,7 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
-			Expect(ms[0].Migration).To(Equal(m))
+			Expect(ms[0].Migration).To(Equal(migrationErrored))
 			Expect(ms[0].Failed()).To(BeTrue())
 			Expect(ms[0].Failure()).ToNot(BeNil())
 			Expect(ms[0].Failure().Error()).To(ContainSubstring("this is the panic data"))
@@ -401,61 +497,58 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(ms[0].PanicData()).To(Equal(ms[0].Failure()))
 
 			Expect(migrations).To(HaveLen(1))
-			Expect(migrations[0]).To(Equal(m))
+			Expect(migrations[0]).To(Equal(migrationErrored))
 
-			Expect(m.done).To(BeTrue())
-			Expect(m.undone).To(BeFalse())
+			Expect(migrationErrored.done).To(BeTrue())
+			Expect(migrationErrored.undone).To(BeFalse())
 
-			Expect(manager.Target().Version()).To(Equal(now.Add(-time.Nanosecond)))
-		})
-
-		It("should not save version when panicking", func() {
-			target.SetVersion(m1.GetID().Add(-time.Hour))
-			codeSource.Register(m4UndonePanic)
-			codeSource.Register(m5DonePanic)
-
-			migrations := make([]migration.Migration, 0)
-			ms, err := manager.Migrate(&nopReporter{
-				beforeMigration: func(summary *migration.Summary, err error) {
-					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
-					migrations = append(migrations, summary.Migration)
-				},
-			})
-			Expect(err).To(Equal(migration.ErrMigrationPanicked))
-
-			Expect(ms).To(HaveLen(4))
-			Expect(ms[0].Migration).To(Equal(m1))
-			Expect(ms[1].Migration).To(Equal(m2))
-			Expect(ms[2].Migration).To(Equal(m4UndonePanic))
-			Expect(ms[3].Migration).To(Equal(m5DonePanic))
-			Expect(ms[3].Failed()).To(BeTrue())
-			Expect(ms[3].Failure()).ToNot(BeNil())
-			Expect(ms[3].Failure().Error()).To(ContainSubstring("m5 done panic forced error"))
-
-			Expect(migrations).To(HaveLen(4))
-			Expect(migrations[0]).To(Equal(m1))
-			Expect(migrations[1]).To(Equal(m2))
-			Expect(migrations[2]).To(Equal(m4UndonePanic))
-			Expect(migrations[3]).To(Equal(m5DonePanic))
-
-			Expect(m1.done).To(BeTrue())
-			Expect(m1.undone).To(BeFalse())
-			Expect(m2.done).To(BeTrue())
-			Expect(m2.undone).To(BeFalse())
-			Expect(m4UndonePanic.done).To(BeTrue())
-			Expect(m4UndonePanic.undone).To(BeFalse())
-			Expect(m5DonePanic.done).To(BeTrue())
-			Expect(m5DonePanic.undone).To(BeFalse())
-			Expect(m3.done).To(BeFalse())
-			Expect(m3.undone).To(BeFalse())
-
-			Expect(manager.Target().Version()).To(Equal(m4UndoneErr.GetID()))
+			Expect(manager.Target().Version()).To(Equal(m1.GetID()))
 		})
 	})
 
 	Describe("Rewind", func() {
+		It("should fail removing a migration from the list", func() {
+			target := &RemoveMigrationErroredTarget{}
+			manager := migration.NewDefaultManager(target, codeSource)
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
+
+			migrations := make([]migration.Migration, 0)
+			ms, err := manager.Rewind(&nopReporter{
+				beforeMigration: func(summary *migration.Summary, err error) {
+					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
+					migrations = append(migrations, summary.Migration)
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("RemoveMigration: forced error"))
+
+			Expect(ms).To(HaveLen(1))
+			Expect(ms[0].Migration.GetID()).To(Equal(m3.GetID()))
+
+			Expect(migrations).To(HaveLen(1))
+			Expect(migrations[0].GetID()).To(Equal(m3.GetID()))
+
+			Expect(m1.done).To(BeFalse())
+			Expect(m1.undone).To(BeFalse())
+			Expect(m2.done).To(BeFalse())
+			Expect(m2.undone).To(BeFalse())
+			Expect(m3.done).To(BeFalse())
+			Expect(m3.undone).To(BeTrue())
+
+			migrations, err = manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrations).To(HaveLen(3))
+			Expect(migrations[0].GetID()).To(Equal(m1.GetID()))
+			Expect(migrations[1].GetID()).To(Equal(m2.GetID()))
+			Expect(migrations[2].GetID()).To(Equal(m3.GetID()))
+		})
+
 		It("should rewind all migrations", func() {
-			target.SetVersion(m3.GetID())
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
@@ -482,10 +575,15 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(m2.undone).To(BeTrue())
 			Expect(m3.done).To(BeFalse())
 			Expect(m3.undone).To(BeTrue())
+
+			migrations, err = manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrations).To(BeEmpty())
 		})
 
 		It("should rewind all migrations part of migrations", func() {
-			target.SetVersion(m2.GetID())
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
@@ -513,9 +611,16 @@ var _ = Describe("ManagerDefault", func() {
 		})
 
 		It("should rewind fail in the middle", func() {
-			target.SetVersion(m3.GetID())
-			codeSource.Register(m4UndoneErr)
-			codeSource.Register(m5DoneErr)
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
+			migrationErrored := &migrationMock{
+				id:          m2.id.Add(time.Second),
+				description: "undone err",
+				undoneErr:   errors.New("forced error"),
+			}
+			codeSource.Register(migrationErrored)
+			target.AddMigration(migration.NewSummary(migrationErrored))
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
@@ -525,39 +630,38 @@ var _ = Describe("ManagerDefault", func() {
 				},
 			})
 			Expect(err).ToNot(BeNil())
-			Expect(err.Error()).To(ContainSubstring("m4 undone forced error"))
+			Expect(err.Error()).To(ContainSubstring("forced error"))
 
-			Expect(ms).To(HaveLen(3))
+			Expect(ms).To(HaveLen(2))
 			Expect(ms[0].Migration).To(Equal(m3))
-			Expect(ms[1].Migration).To(Equal(m5DoneErr))
-			Expect(ms[2].Migration).To(Equal(m4UndoneErr))
-			Expect(ms[2].Failed()).To(BeTrue())
-			Expect(ms[2].Failure()).ToNot(BeNil())
-			Expect(ms[2].Failure().Error()).To(ContainSubstring("m4 undone forced error"))
+			Expect(ms[1].Migration).To(Equal(migrationErrored))
+			Expect(ms[1].Failed()).To(BeTrue())
+			Expect(ms[1].Failure()).ToNot(BeNil())
+			Expect(ms[1].Failure().Error()).To(ContainSubstring("forced error"))
 
-			Expect(migrations).To(HaveLen(3))
+			Expect(migrations).To(HaveLen(2))
 			Expect(migrations[0]).To(Equal(m3))
-			Expect(migrations[1]).To(Equal(m5DoneErr))
-			Expect(migrations[2]).To(Equal(m4UndoneErr))
+			Expect(migrations[1]).To(Equal(migrationErrored))
 
-			Expect(m1.done).To(BeFalse())
-			Expect(m1.undone).To(BeFalse())
-			Expect(m2.done).To(BeFalse())
-			Expect(m2.undone).To(BeFalse())
-			Expect(m4UndoneErr.done).To(BeFalse())
-			Expect(m4UndoneErr.undone).To(BeTrue())
-			Expect(m5DoneErr.done).To(BeFalse())
-			Expect(m5DoneErr.undone).To(BeTrue())
+			Expect(migrationErrored.done).To(BeFalse())
+			Expect(migrationErrored.undone).To(BeTrue())
 			Expect(m3.done).To(BeFalse())
 			Expect(m3.undone).To(BeTrue())
 
-			Expect(manager.Target().Version()).To(Equal(m5DoneErr.GetID()))
+			Expect(manager.Target().Version()).To(Equal(migrationErrored.GetID()))
 		})
 
 		It("should not save the version when panicking", func() {
-			target.SetVersion(m3.GetID())
-			codeSource.Register(m4UndonePanic)
-			codeSource.Register(m5DonePanic)
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
+			migrationErrored := &migrationMock{
+				id:              m2.id.Add(time.Second),
+				description:     "GetDescription 4: Done Panic",
+				undonePanicData: errors.New("m4 undone panic forced error"),
+			}
+			codeSource.Register(migrationErrored)
+			target.AddMigration(migration.NewSummary(migrationErrored))
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Rewind(&nopReporter{
@@ -568,43 +672,39 @@ var _ = Describe("ManagerDefault", func() {
 			})
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
-			Expect(ms).To(HaveLen(3))
+			Expect(ms).To(HaveLen(2))
 			Expect(ms[0].Migration).To(Equal(m3))
-			Expect(ms[1].Migration).To(Equal(m5DonePanic))
-			Expect(ms[2].Migration).To(Equal(m4UndonePanic))
-			Expect(ms[2].Panicked()).To(BeTrue())
-			Expect(ms[2].Failed()).To(BeTrue())
-			Expect(ms[2].Failure()).ToNot(BeNil())
-			Expect(ms[2].Failure().Error()).To(ContainSubstring("m4 undone panic forced error"))
+			Expect(ms[1].Migration).To(Equal(migrationErrored))
+			Expect(ms[1].Panicked()).To(BeTrue())
+			Expect(ms[1].Failed()).To(BeTrue())
+			Expect(ms[1].Failure()).ToNot(BeNil())
+			Expect(ms[1].Failure().Error()).To(ContainSubstring("m4 undone panic forced error"))
 
-			Expect(migrations).To(HaveLen(3))
+			Expect(migrations).To(HaveLen(2))
 			Expect(migrations[0]).To(Equal(m3))
-			Expect(migrations[1]).To(Equal(m5DonePanic))
-			Expect(migrations[2]).To(Equal(m4UndonePanic))
+			Expect(migrations[1]).To(Equal(migrationErrored))
 
 			Expect(m1.done).To(BeFalse())
 			Expect(m1.undone).To(BeFalse())
 			Expect(m2.done).To(BeFalse())
 			Expect(m2.undone).To(BeFalse())
-			Expect(m4UndonePanic.done).To(BeFalse())
-			Expect(m4UndonePanic.undone).To(BeTrue())
-			Expect(m5DonePanic.done).To(BeFalse())
-			Expect(m5DonePanic.undone).To(BeTrue())
+			Expect(migrationErrored.done).To(BeFalse())
+			Expect(migrationErrored.undone).To(BeTrue())
 			Expect(m3.done).To(BeFalse())
 			Expect(m3.undone).To(BeTrue())
 
-			Expect(manager.Target().Version()).To(Equal(m5DoneErr.GetID()))
+			Expect(manager.Target().Version()).To(Equal(migrationErrored.GetID()))
 		})
 
 		It("should panic the migration with a non error panic data", func() {
-			now := time.Now().UTC()
-			target.SetVersion(now.Add(time.Nanosecond))
+			target.AddMigration(migration.NewSummary(m1))
 			codeSource = migration.NewCodeSource()
-			m := &migrationMock{
-				id:              now,
+			migrationErrored := &migrationMock{
+				id:              m1.id.Add(time.Second),
 				undonePanicData: "this is the panic data",
 			}
-			codeSource.Register(m)
+			codeSource.Register(migrationErrored)
+			target.AddMigration(migration.NewSummary(migrationErrored))
 			manager := migration.NewDefaultManager(target, codeSource)
 
 			migrations := make([]migration.Migration, 0)
@@ -617,30 +717,30 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
-			Expect(ms[0].Migration).To(Equal(m))
+			Expect(ms[0].Migration).To(Equal(migrationErrored))
 			Expect(ms[0].Failed()).To(BeFalse())
 			Expect(ms[0].Failure()).To(BeNil())
 			Expect(ms[0].Panicked()).To(BeTrue())
 			Expect(ms[0].PanicData()).To(Equal("this is the panic data"))
 
 			Expect(migrations).To(HaveLen(1))
-			Expect(migrations[0]).To(Equal(m))
+			Expect(migrations[0]).To(Equal(migrationErrored))
 
-			Expect(m.done).To(BeFalse())
-			Expect(m.undone).To(BeTrue())
+			Expect(migrationErrored.done).To(BeFalse())
+			Expect(migrationErrored.undone).To(BeTrue())
 
-			Expect(manager.Target().Version()).To(Equal(now.Add(time.Nanosecond)))
+			Expect(manager.Target().Version()).To(Equal(migrationErrored.GetID()))
 		})
 
 		It("should panic the migration with a panic data as an error", func() {
-			now := time.Now().UTC()
-			target.SetVersion(now.Add(time.Nanosecond))
+			target.AddMigration(migration.NewSummary(m1))
 			codeSource = migration.NewCodeSource()
-			m := &migrationMock{
-				id:              now,
+			migrationErrored := &migrationMock{
+				id:              m1.GetID().Add(time.Second),
 				undonePanicData: errors.New("this is the panic data"),
 			}
-			codeSource.Register(m)
+			codeSource.Register(migrationErrored)
+			target.AddMigration(migration.NewSummary(migrationErrored))
 			manager := migration.NewDefaultManager(target, codeSource)
 
 			migrations := make([]migration.Migration, 0)
@@ -653,7 +753,7 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
-			Expect(ms[0].Migration).To(Equal(m))
+			Expect(ms[0].Migration).To(Equal(migrationErrored))
 			Expect(ms[0].Failed()).To(BeTrue())
 			Expect(ms[0].Failure()).ToNot(BeNil())
 			Expect(ms[0].Failure().Error()).To(ContainSubstring("this is the panic data"))
@@ -661,19 +761,17 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(ms[0].PanicData()).To(Equal(ms[0].Failure()))
 
 			Expect(migrations).To(HaveLen(1))
-			Expect(migrations[0]).To(Equal(m))
+			Expect(migrations[0]).To(Equal(migrationErrored))
 
-			Expect(m.done).To(BeFalse())
-			Expect(m.undone).To(BeTrue())
+			Expect(migrationErrored.done).To(BeFalse())
+			Expect(migrationErrored.undone).To(BeTrue())
 
-			Expect(manager.Target().Version()).To(Equal(now.Add(time.Nanosecond)))
+			Expect(manager.Target().Version()).To(Equal(migrationErrored.GetID()))
 		})
 	})
 
 	Describe("Do", func() {
 		It("should execute a migration", func() {
-			manager.Target().SetVersion(migration.NoVersion)
-
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
 				beforeMigration: func(summary *migration.Summary, err error) {
@@ -691,11 +789,14 @@ var _ = Describe("ManagerDefault", func() {
 			version, err := target.Version()
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(m1.GetID()))
+
+			migrationsExecuted, err := manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrationsExecuted).To(HaveLen(1))
+			Expect(migrationsExecuted[0].GetID()).To(Equal(m1.GetID()))
 		})
 
 		It("should multiple Do in sequence", func() {
-			manager.Target().SetVersion(migration.NoVersion)
-
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
 				beforeMigration: func(summary *migration.Summary, err error) {
@@ -751,6 +852,13 @@ var _ = Describe("ManagerDefault", func() {
 			version, err = target.Version()
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(m3.GetID()))
+
+			migrationsExecuted, err := manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrationsExecuted).To(HaveLen(3))
+			Expect(migrationsExecuted[0].GetID()).To(Equal(m1.GetID()))
+			Expect(migrationsExecuted[1].GetID()).To(Equal(m2.GetID()))
+			Expect(migrationsExecuted[2].GetID()).To(Equal(m3.GetID()))
 		})
 
 		It("should fail migrating", func() {
@@ -758,7 +866,6 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource.Register(m5DoneErr)
 
 			manager := migration.NewDefaultManager(target, codeSource)
-			manager.Target().SetVersion(migration.NoVersion)
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
@@ -792,7 +899,6 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource.Register(m)
 
 			manager := migration.NewDefaultManager(target, codeSource)
-			manager.Target().SetVersion(migration.NoVersion)
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
@@ -827,7 +933,6 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource.Register(m)
 
 			manager := migration.NewDefaultManager(target, codeSource)
-			manager.Target().SetVersion(migration.NoVersion)
 
 			beforeMigrationCalled := false
 			summary, err := manager.Do(&nopReporter{
@@ -854,7 +959,7 @@ var _ = Describe("ManagerDefault", func() {
 
 	Describe("Undo", func() {
 		It("should undo a migration", func() {
-			manager.Target().SetVersion(m1.GetID())
+			manager.Target().AddMigration(migration.NewSummary(m1))
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
@@ -873,10 +978,16 @@ var _ = Describe("ManagerDefault", func() {
 			version, err := target.Version()
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(migration.NoVersion))
+
+			migrationsExecuted, err := manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrationsExecuted).To(BeEmpty())
 		})
 
 		It("should multiple Undo in sequence", func() {
-			manager.Target().SetVersion(m3.GetID())
+			manager.Target().AddMigration(migration.NewSummary(m1))
+			manager.Target().AddMigration(migration.NewSummary(m2))
+			manager.Target().AddMigration(migration.NewSummary(m3))
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
@@ -933,61 +1044,79 @@ var _ = Describe("ManagerDefault", func() {
 			version, err = target.Version()
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(migration.NoVersion))
+
+			migrationsExecuted, err := manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrationsExecuted).To(BeEmpty())
 		})
 
 		It("should fail migrating", func() {
 			codeSource = migration.NewCodeSource()
-			codeSource.Register(m4UndoneErr)
+			migrationErrored := &migrationMock{
+				id:          m1.id.Add(time.Second),
+				description: "Undone err",
+				undoneErr:   errors.New("forced error"),
+			}
+			codeSource.Register(m1)
+			codeSource.Register(migrationErrored)
 
 			manager := migration.NewDefaultManager(target, codeSource)
-			manager.Target().SetVersion(m4UndoneErr.GetID())
+			manager.Target().AddMigration(migration.NewSummary(m1))
+			manager.Target().AddMigration(migration.NewSummary(migrationErrored))
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
 				beforeMigration: func(summary *migration.Summary, err error) {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
-					Expect(summary.Migration).To(Equal(m4UndoneErr))
+					Expect(summary.Migration.GetID()).To(Equal(migrationErrored.id))
 					beforeMigrationCalled = true
 				},
 			})
-			Expect(err).To(Equal(m4UndoneErr.undoneErr))
+			Expect(err).To(Equal(migrationErrored.undoneErr))
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
-			Expect(summary.Migration).To(Equal(m4UndoneErr))
+			Expect(summary.Migration).To(Equal(migrationErrored))
 			Expect(summary.Failed()).To(BeTrue())
-			Expect(summary.Failure()).To(Equal(m4UndoneErr.undoneErr))
+			Expect(summary.Failure()).To(Equal(migrationErrored.undoneErr))
 			Expect(summary.Panicked()).To(BeFalse())
 			Expect(summary.PanicData()).To(BeNil())
 
 			version, err := target.Version()
 			Expect(err).To(BeNil())
-			Expect(version).To(Equal(m4UndoneErr.GetID()))
+			Expect(version).To(Equal(migrationErrored.GetID()))
+
+			migrationsExecuted, err := manager.MigrationsExecuted()
+			Expect(migrationsExecuted).To(HaveLen(2))
+			Expect(migrationsExecuted[0].GetID()).To(Equal(m1.GetID()))
+			Expect(migrationsExecuted[1].GetID()).To(Equal(migrationErrored.GetID()))
 		})
 
 		It("should panic an error when migrating", func() {
 			codeSource = migration.NewCodeSource()
-			now := time.Now().UTC()
-			m := &migrationMock{
-				id:              now,
+			migrationErrored := &migrationMock{
+				id:              m1.id.Add(time.Second),
+				description:     "errored migration",
 				undonePanicData: errors.New("forced error"),
 			}
-			codeSource.Register(m)
+			codeSource.Register(m1)
+			codeSource.Register(migrationErrored)
 
 			manager := migration.NewDefaultManager(target, codeSource)
-			manager.Target().SetVersion(now)
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(migrationErrored))
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
 				beforeMigration: func(summary *migration.Summary, err error) {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
-					Expect(summary.Migration).To(Equal(m))
+					Expect(summary.Migration).To(Equal(migrationErrored))
 					beforeMigrationCalled = true
 				},
 			})
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
-			Expect(summary.Migration).To(Equal(m))
+			Expect(summary.Migration).To(Equal(migrationErrored))
 			Expect(summary.Failed()).To(BeTrue())
 			Expect(summary.Failure()).ToNot(BeNil())
 			Expect(summary.Failure().(error).Error()).To(ContainSubstring("forced error"))
@@ -996,7 +1125,13 @@ var _ = Describe("ManagerDefault", func() {
 
 			version, err := target.Version()
 			Expect(err).To(BeNil())
-			Expect(version).To(Equal(m.GetID()))
+			Expect(version).To(Equal(migrationErrored.GetID()))
+
+			migrationsExecuted, err := manager.MigrationsExecuted()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(migrationsExecuted).To(HaveLen(2))
+			Expect(migrationsExecuted[0].GetID()).To(Equal(m1.GetID()))
+			Expect(migrationsExecuted[1].GetID()).To(Equal(migrationErrored.GetID()))
 		})
 
 		It("should panic an string when migrating", func() {
@@ -1009,7 +1144,7 @@ var _ = Describe("ManagerDefault", func() {
 			codeSource.Register(m)
 
 			manager := migration.NewDefaultManager(target, codeSource)
-			manager.Target().SetVersion(now)
+			manager.Target().AddMigration(migration.NewSummary(m))
 
 			beforeMigrationCalled := false
 			summary, err := manager.Undo(&nopReporter{
@@ -1031,6 +1166,19 @@ var _ = Describe("ManagerDefault", func() {
 			version, err := target.Version()
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(m.GetID()))
+		})
+	})
+
+	Describe("Reset", func() {
+		It("should reset a migration", func() {
+			target.AddMigration(migration.NewSummary(m1))
+			target.AddMigration(migration.NewSummary(m2))
+			target.AddMigration(migration.NewSummary(m3))
+
+			migrationUndone, migrationsDone, err := manager.Reset(&nopReporter{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(migrationUndone).To(HaveLen(3))
+			Expect(migrationsDone).To(HaveLen(3))
 		})
 	})
 })

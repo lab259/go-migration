@@ -72,22 +72,56 @@ func (manager *ManagerDefault) migrationsAfter(version time.Time) ([]Migration, 
 // uses the migration.Manager.MigrationsBefore passing on the current version
 // from migration.Manager.Target.Version.
 func (manager *ManagerDefault) MigrationsPending() ([]Migration, error) {
-	version, err := manager.target.Version()
-	if err == nil {
-		return manager.migrationsAfter(version)
+	migrations, err := manager.source.List()
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	executed, err := manager.target.MigrationsExecuted()
+	if err != nil {
+		return nil, err
+	}
+	executedMap := make(map[int64]bool, len(executed))
+	for _, m := range executed {
+		executedMap[m.UnixNano()] = true
+	}
+
+	pending := make([]Migration, 0, len(migrations))
+	for _, migration := range migrations {
+		if _, ok := executedMap[migration.GetID().UnixNano()]; !ok {
+			pending = append(pending, migration)
+		}
+	}
+
+	return pending, nil
 }
 
 // MigrationsExecuted returns a list of migrations that were executed. It uses
 // the migration.Manager.MigrationsAfter passing on the current version from
 // migration.Manager.Target.Version.
 func (manager *ManagerDefault) MigrationsExecuted() ([]Migration, error) {
-	version, err := manager.target.Version()
-	if err == nil {
-		return manager.migrationsBefore(version)
+	migrations, err := manager.source.List()
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	executed, err := manager.target.MigrationsExecuted()
+	if err != nil {
+		return nil, err
+	}
+	executedMap := make(map[int64]bool, len(executed))
+	for _, m := range executed {
+		executedMap[m.UnixNano()] = true
+	}
+
+	pending := make([]Migration, 0, len(migrations))
+	for _, migration := range migrations {
+		if _, ok := executedMap[migration.GetID().UnixNano()]; ok {
+			pending = append(pending, migration)
+		}
+	}
+
+	return pending, nil
 }
 
 // Do takes a step up on the migrations, bringing the database one step closer
@@ -141,7 +175,7 @@ func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Summ
 	if summary.panicked {
 		return summary, ErrMigrationPanicked
 	}
-	if err = manager.target.SetVersion(summary.Migration.GetID()); err != nil {
+	if err = manager.target.AddMigration(summary); err != nil {
 		return summary, err
 	}
 
@@ -164,17 +198,6 @@ func (manager *ManagerDefault) Undo(reporter Reporter) (*Summary, error) {
 		return nil, nil
 	}
 	summary, err := manager.undo(migrations[len(migrations)-1], reporter)
-	if !summary.failed && !summary.panicked {
-		var nVersion time.Time
-		if len(migrations) > 1 {
-			nVersion = migrations[len(migrations)-2].GetID()
-		} else {
-			nVersion = NoVersion
-		}
-		if err = manager.target.SetVersion(nVersion); err != nil {
-			return summary, err
-		}
-	}
 	return summary, err
 }
 
@@ -214,7 +237,7 @@ func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*Summary, e
 		return summary, ErrMigrationPanicked
 	}
 
-	if err = manager.target.SetVersion(summary.Migration.GetID()); err != nil {
+	if err = manager.target.RemoveMigration(summary); err != nil {
 		return summary, err
 	}
 	return summary, nil
@@ -240,9 +263,6 @@ func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
 		if err != nil {
 			return result, err
 		}
-		if summary.Failed() || summary.Panicked() {
-			return result, summary.Failure()
-		}
 	}
 	return result, nil
 }
@@ -253,11 +273,7 @@ func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
 // migration.Migrate.Down in a inverted order, virtually bringing the database
 // to its original form.
 func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*Summary, error) {
-	version, err := manager.target.Version()
-	if err != nil {
-		return nil, err
-	}
-	list, err := manager.migrationsBefore(version)
+	list, err := manager.MigrationsExecuted()
 	if err != nil {
 		return nil, err
 	}
@@ -271,15 +287,13 @@ func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*Summary, error) {
 		if err != nil {
 			return result, err
 		}
-		if summary.Failed() || summary.Panicked() {
-			return result, summary.Failure()
-		}
 	}
 	return result, nil
 }
 
 // Reset rewind all the migrations, then migrates to the latest.
 func (manager *ManagerDefault) Reset(reporter Reporter) ([]*Summary, []*Summary, error) {
+	reporter.BeforeReset()
 	migrationsBack, err := manager.Rewind(reporter)
 	if err != nil {
 		return migrationsBack, nil, err

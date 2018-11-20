@@ -11,7 +11,13 @@ type Target interface {
 	// Version returns the current version of the database.
 	Version() (time.Time, error)
 
-	// SetVersion persists the version on the database (or any other mean
+	// AddMigration persists the version on the database (or any other mean
 	// necessary).
-	SetVersion(version time.Time) error
+	AddMigration(summary *Summary) error
+
+	// RemoveMigration removes a migration record from the database.
+	RemoveMigration(summary *Summary) error
+
+	// MigrationsExecuted returns all the migrations executed.
+	MigrationsExecuted() ([]time.Time, error)
 }

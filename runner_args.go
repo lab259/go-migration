@@ -19,14 +19,16 @@ func NewArgsRunner(reporter Reporter, manager Manager, exitFnc func(code int)) R
 		reporter: reporter,
 		manager:  manager,
 		args:     os.Args[1:],
+		exitFnc: exitFnc,
 	}
 }
 
 // NewArgsRunnerCustom create a new instance of the Runer with custom arguments.
-func NewArgsRunnerCustom(reporter Reporter, manager Manager, args ...string) Runner {
+func NewArgsRunnerCustom(reporter Reporter, manager Manager, exitFnc func (code int), args ...string) Runner {
 	return &ArgsRunner{
 		reporter: reporter,
 		manager:  manager,
+		exitFnc: exitFnc,
 		args:     args,
 	}
 }

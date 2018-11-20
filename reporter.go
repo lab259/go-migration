@@ -15,7 +15,7 @@ type Reporter interface {
 	BeforeRewind(migrations []Migration)
 	AfterRewind(migrations []*Summary, err error)
 
-	BeforeReset(doMigrations []Migration, undoMigrations []Migration)
+	BeforeReset()
 	AfterReset(rewindSummary []*Summary, migrateSummary []*Summary, err error)
 
 	ListPending(migrations []Migration, err error)
