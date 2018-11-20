@@ -24,6 +24,8 @@ type Reporter interface {
 	Failure(err error)
 	Exit(code int)
 
+	MigrationsStarved(migrations []Migration)
+
 	Usage()
 	CommandNotFound(command string)
 	NoCommand()

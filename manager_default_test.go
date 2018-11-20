@@ -80,6 +80,15 @@ func (target *ErroredTarget) MigrationsExecuted() ([]time.Time, error) {
 	return nil, errors.New("MigrationsExecuted: forced error")
 }
 
+type AddMigrationErroredTarget struct {
+	nopTarget
+}
+
+// AddMigration return an error
+func (target *AddMigrationErroredTarget) AddMigration(summary *migration.Summary) error {
+	return errors.New("AddMigration: forced error")
+}
+
 type RemoveMigrationErroredTarget struct {
 	nopTarget
 }
@@ -127,6 +136,9 @@ func (reporter *nopReporter) ListPending(migrations []migration.Migration, err e
 }
 
 func (reporter *nopReporter) ListExecuted(migrations []migration.Migration, err error) {
+}
+
+func (reporter *nopReporter) MigrationsStarved(migrations []migration.Migration) {
 }
 
 func (reporter *nopReporter) Failure(err error) {
@@ -317,7 +329,7 @@ var _ = Describe("ManagerDefault", func() {
 
 	Describe("Migrate", func() {
 		It("should fail adding the migration as executed", func() {
-			manager := migration.NewDefaultManager(&ErroredTarget{}, codeSource)
+			manager := migration.NewDefaultManager(&AddMigrationErroredTarget{}, codeSource)
 
 			migrations := make([]migration.Migration, 0)
 			ms, err := manager.Migrate(&nopReporter{
@@ -503,6 +515,17 @@ var _ = Describe("ManagerDefault", func() {
 			Expect(migrationErrored.undone).To(BeFalse())
 
 			Expect(manager.Target().Version()).To(Equal(m1.GetID()))
+		})
+
+		It("should detect starvation", func() {
+			target.AddMigration(migration.NewSummary(m2))
+
+			ms, err := manager.Migrate(&nopReporter{})
+			Expect(err).To(Equal(migration.ErrMigrationStarved))
+
+			Expect(ms).To(BeEmpty())
+
+			Expect(manager.Target().Version()).To(Equal(m2.GetID()))
 		})
 	})
 
@@ -954,6 +977,17 @@ var _ = Describe("ManagerDefault", func() {
 			version, err := target.Version()
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(migration.NoVersion))
+		})
+
+		It("should detect starvation", func() {
+			target.AddMigration(migration.NewSummary(m2))
+
+			ms, err := manager.Do(&nopReporter{})
+			Expect(err).To(Equal(migration.ErrMigrationStarved))
+
+			Expect(ms).To(BeNil())
+
+			Expect(manager.Target().Version()).To(Equal(m2.GetID()))
 		})
 	})
 

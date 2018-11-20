@@ -8,6 +8,9 @@ import (
 // ErrMigrationPanicked is the error returned when a migrations panics.
 var ErrMigrationPanicked = errors.New("migration panicked")
 
+// ErrMigrationStarved is when late migrations are detected.
+var ErrMigrationStarved = errors.New("migration starvation")
+
 // ManagerDefault is a default implementation of a Manager. It provides, via
 // migration.NewManager, a way to define what is the source and target of a
 // manager.
@@ -131,10 +134,20 @@ func (manager *ManagerDefault) MigrationsExecuted() ([]Migration, error) {
 // After the migration is executed, if it returns no error, it calls the
 // reporter.After method.
 func (manager *ManagerDefault) Do(reporter Reporter) (*Summary, error) {
+	version, err := manager.target.Version()
+	if err != nil {
+		return nil, err
+	}
 	migrations, err := manager.MigrationsPending()
 	if err != nil {
 		return nil, err
 	}
+
+	err = manager.detectStarvation(reporter, migrations, version)
+	if err != nil {
+		return nil, err
+	}
+
 	// No migrations
 	if len(migrations) == 0 {
 		return nil, nil
@@ -243,15 +256,37 @@ func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*Summary, e
 	return summary, nil
 }
 
+func (manager *ManagerDefault) detectStarvation(reporter Reporter, list []Migration, version time.Time) error {
+	migrationsStarved := make([]Migration, 0)
+
+	for _, m := range list {
+		if m.GetID().Before(version) {
+			migrationsStarved = append(migrationsStarved, m)
+		}
+	}
+
+	if len(migrationsStarved) > 0 {
+		reporter.MigrationsStarved(migrationsStarved)
+		return ErrMigrationStarved
+	}
+	return nil
+}
+
 // Migrate brings the database to the latest migration.
 func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
 	version, err := manager.target.Version()
 	if err != nil {
 		return nil, err
 	}
-	list, err := manager.migrationsAfter(version)
+	list, err := manager.MigrationsPending()
 	if err != nil {
 		return nil, err
+	}
+	if len(list) > 0 {
+		err = manager.detectStarvation(reporter, list, version)
+		if err != nil {
+			return nil, err
+		}
 	}
 	reporter.BeforeMigrate(list)
 	result := make([]*Summary, 0, len(list))

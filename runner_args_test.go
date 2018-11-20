@@ -19,6 +19,7 @@ type customReporter struct {
 	afterReset       func(rewindSummary []*migration.Summary, migrateSummary []*migration.Summary, err error)
 	listPending      func(migrations []migration.Migration, err error)
 	listExecuted     func(migrations []migration.Migration, err error)
+	migrationStarved func(migrations []migration.Migration)
 	failure          func(err error)
 	exit             func(code int)
 	usage            func()
@@ -89,6 +90,12 @@ func (reporter *customReporter) ListPending(migrations []migration.Migration, er
 func (reporter *customReporter) ListExecuted(migrations []migration.Migration, err error) {
 	if reporter.listExecuted != nil {
 		reporter.listExecuted(migrations, err)
+	}
+}
+
+func (reporter *customReporter) MigrationsStarved(migrations []migration.Migration) {
+	if reporter.migrationStarved != nil {
+		reporter.migrationStarved(migrations)
 	}
 }
 
