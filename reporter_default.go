@@ -142,7 +142,7 @@ func (reporter *DefaultReporter) AfterRewind(migrations []*Summary, err error) {
 }
 
 // BeforeReset is called right before the process of reseting is triggered.
-func (reporter *DefaultReporter) BeforeReset(rewindSummary []Migration, migrateSummary []Migration) {
+func (reporter *DefaultReporter) BeforeReset() {
 	// TODO
 }
 
@@ -235,4 +235,16 @@ func (reporter *DefaultReporter) CommandNotFound(command string) {
 // NoCommand gets called when no command is provided to the migration tool.
 func (reporter *DefaultReporter) NoCommand() {
 	reporter.Usage()
+}
+
+// MigrationsStarved is called whenever the manager detects a migration will
+// never be executed.
+func (reporter *DefaultReporter) MigrationsStarved(migrations []Migration) {
+	reporter.printLn(styleError(fmt.Sprintf("Starvation detected in %d migrations", len(migrations))))
+	for i, m := range migrations {
+		reporter.print(styleNormal(fmt.Sprintf("  %d) [", i+1)))
+		reporter.print(styleMigrationID(m.GetID().Format(migrationIDFormat)))
+		reporter.print(styleNormal("] "))
+		reporter.printLn(styleMigrationTitle(m.GetDescription()))
+	}
 }
