@@ -125,4 +125,20 @@ var _ = Describe("MongoDBTarget", func() {
 		Expect(migrations[1]).To(Equal(m3.GetID()))
 		Expect(migrations[2]).To(Equal(m5.GetID()))
 	})
+
+	It("should remove a migration from the database", func() {
+		target := migration.NewMongoDB(session)
+		target.AddMigration(migration.NewSummary(m5))
+		target.AddMigration(migration.NewSummary(m3))
+		target.AddMigration(migration.NewSummary(m1))
+
+		err := target.RemoveMigration(migration.NewSummary(m3))
+		Expect(err).NotTo(HaveOccurred())
+
+		migrations, err := target.MigrationsExecuted()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(migrations).To(HaveLen(2))
+		Expect(migrations[0]).To(Equal(m1.GetID()))
+		Expect(migrations[1]).To(Equal(m5.GetID()))
+	})
 })

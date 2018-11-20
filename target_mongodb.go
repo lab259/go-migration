@@ -83,6 +83,14 @@ func (t *MongoDBTarget) AddMigration(summary *Summary) error {
 	})
 }
 
+// RemoveMigration find and removes a migrations from the collection.
+func (t *MongoDBTarget) RemoveMigration(summary *Summary) error {
+	return t.runWithDB(func(db *mgo.Database) error {
+		c := t.collection(db)
+		return c.Remove(map[string]interface{}{"_id": summary.Migration.GetID()})
+	})
+}
+
 func (t *MongoDBTarget) MigrationsExecuted() ([]time.Time, error) {
 	migrations := make([]mongoDBMigrationVersion, 0)
 	err := t.runWithDB(func(db *mgo.Database) error {
