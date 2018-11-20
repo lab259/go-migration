@@ -98,26 +98,6 @@ Another thing the `NewCodeMigration` does is to auto register in the
 `DefaultCodeSource`. If you create a migration through the `NewMigration`
 you will need to register it manually.
 
-## Starvation
-
-Imagine you are creating migrations and deploying your system in a CI/CD
-system.
-
-Everything is going fine and a new feature X is started. This feature is
-complicated, but not much, and in a week will to push. On the day 1 a
-migration is created.
-
-Meanwhile, in day 3, a bug is detected... The team quickly implements a
-patch that creates a migration that gets ran in the server.
-
-BAM! That migration, created on day 1, for the feature X starved.
-
-When it happens, the migration tool will complains and fail migrating
-until the migration is updated... In the best case scenario, only
-updating the ID of the migration will be enough. In the worst case, some
-refactoring must be done. Either way, a human will need to fix it properly
-and ensure no bugs are going into production.
-
 ## Motivation
 
 At first, I was not intending to create my own migration framework until I got
