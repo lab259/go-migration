@@ -80,7 +80,9 @@ func NewCodeMigration(handlers ...Handler) *DefaultMigration {
 			if err != nil {
 				panic(fmt.Sprintf("the file name '%s' has an invalid datetime", file))
 			}
-			return NewMigration(id, groups[2], handlers...)
+			m := NewMigration(id, groups[2], handlers...)
+			DefaultCodeSource().Register(m)
+			return m
 		}
 		panic(fmt.Sprintf("the file name '%s' has an invalid format", file))
 	} else {

@@ -7,21 +7,116 @@
 
 A simple migration framework for Golang.
 
-## Installation
+## CLI
+
+This migration does not have a binary CLI exported, but it has a built in
+tool to be triggered as a CLI.
+
+This approach was adopted because there is a implementation based on source
+code implementation. For that to work we need to compile the tool.
+
+## Usage
 
 ```bash
 go get github.com/lab259/go-migration
 ```
 
-## Getting started
+Now we must implement the CLI:
 
-### The CLI
+```go
+package main
 
-TODO
+import (
+	"fmt"
+	"github.com/globalsign/mgo"
+	"github.com/lab259/go-migration"
+	"github.com/lab259/go-migration/examples/mongo/db"
+	_ "github.com/lab259/go-migration/examples/mongo/migrations" // Import all migrations
+	"os"
+)
 
-### Creating a migration
+func main() {
+	session, err := mgo.Dial("mongodb://localhost/test") // Starts the connection
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	defer session.Close() // Ensures closing the connection
 
-TODO
+	db.MongoSession = session
+
+	source := migration.DefaultCodeSource()      // Default Source implementation is the CodeSource...
+	reporter := migration.NewDefaultReporter()   // Default reporter implementation
+
+	manager := migration.NewDefaultManager(migration.NewMongoDB(session), source)
+	runner := migration.NewArgsRunner(reporter, manager, os.Exit) // Create a runner based on the arguments passed to the program
+	runner.Run() // Run the command
+}
+```
+
+Below is an example of a migration. The `NewCodeMigration` takes the file name
+in consideration to extract the ID and Description of the migration. In the
+following example the file name is "20171219012821_create_table_indexes.go".
+So the ID will be 20171219012821 (but in time.Time) and the description will
+be "create_table_indexes".
+
+```go
+package migrations
+
+import (
+	"github.com/globalsign/mgo"
+	. "github.com/lab259/go-migration"
+	"github.com/lab259/go-migration/examples/mongo/db"
+)
+
+func init() {
+	NewCodeMigration(
+		func() error {
+			// Get the connection reference
+			session := db.GetSession()
+			defer session.Close()
+			//-------------------
+
+			c := session.DB("").C("customers")
+			err := c.EnsureIndex(mgo.Index{
+				Name: "NameIndex",
+				Key:  []string{"name"},
+			})
+			return err // Return the error of the operation
+		}, func() error {
+			session := db.GetSession()
+			defer session.Close()
+
+			err := session.DB("").C("customers").DropIndexName("NameIndex")
+			return err
+		},
+	)
+}
+```
+
+Another thing the `NewCodeMigration` does is to auto register in the
+`DefaultCodeSource`. If you create a migration through the `NewMigration`
+you will need to register it manually.
+
+## Starvation
+
+Imagine you are creating migrations and deploying your system in a CI/CD
+system.
+
+Everything is going fine and a new feature X is started. This feature is
+complicated, but not much, and in a week will to push. On the day 1 a
+migration is created.
+
+Meanwhile, in day 3, a bug is detected... The team quickly implements a
+patch that creates a migration that gets ran in the server.
+
+BAM! That migration, created on day 1, for the feature X starved.
+
+When it happens, the migration tool will complains and fail migrating
+until the migration is updated... In the best case scenario, only
+updating the ID of the migration will be enough. In the worst case, some
+refactoring must be done. Either way, a human will need to fix it properly
+and ensure no bugs are going into production.
 
 ## Motivation
 
@@ -39,6 +134,14 @@ database configurations and connections specifics.
 
 As simple as it can be, it can track anything that can be versioned. From
 NoSQLs, until text files using diffs.
+
+## Mongo is NoSQL... Why bother migrations!?
+
+Well... in the real world sometimes things change. And keep version of
+the "API" in the record might not be the best approach in some cases.
+
+However, the main reason for this implementation is to ensure indexes
+are created correctly.
 
 ## Why it does't have a CLI command?
 

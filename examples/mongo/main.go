@@ -5,6 +5,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/lab259/go-migration"
 	"github.com/lab259/go-migration/examples/mongo/db"
+	_ "github.com/lab259/go-migration/examples/mongo/migrations"
 	"os"
 )
 
