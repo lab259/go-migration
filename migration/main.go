@@ -72,7 +72,7 @@ func init() {
 		},
 	)
 }
-`, path.Dir(path.Base(fname))))
+`, path.Base(path.Dir(fname))))
 	}
 
 	f, err := os.Create(fname)
