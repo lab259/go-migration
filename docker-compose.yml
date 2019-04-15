@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  mongo:
+    image: mongo:4
+    environment:
+      - MONGO_INITDB_DATABASE=brotherhood
+    ports:
+      - 27017:27017
+    volumes:
+      - ./.docker/volumes/mongo-data:/data/db
+      - ./.docker/mongo/entrypoint:/docker-entrypoint-initdb.d

@@ -1,11 +1,12 @@
 package migration_test
 
 import (
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/lab259/go-migration"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 type migrationFromDB struct {
@@ -63,12 +64,12 @@ var _ = Describe("MongoDBTarget", func() {
 	})
 
 	It("should return a new instance of a MongoDBTarget", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		Expect(target).NotTo(BeNil())
 	})
 
 	It("should add migrations to the execution list", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		target.AddMigration(migration.NewSummary(m1))
 		target.AddMigration(migration.NewSummary(m2))
 		target.AddMigration(migration.NewSummary(m5))
@@ -84,14 +85,14 @@ var _ = Describe("MongoDBTarget", func() {
 	})
 
 	It("should return NoVersion when there is no migrations ran", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		version, err := target.Version()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(version).To(Equal(migration.NoVersion))
 	})
 
 	It("should return the current version", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		target.AddMigration(migration.NewSummary(m1))
 		target.AddMigration(migration.NewSummary(m2))
 		target.AddMigration(migration.NewSummary(m5))
@@ -102,7 +103,7 @@ var _ = Describe("MongoDBTarget", func() {
 	})
 
 	It("should return the current version with an arbitrary addition of migrations", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		target.AddMigration(migration.NewSummary(m5))
 		target.AddMigration(migration.NewSummary(m3))
 		target.AddMigration(migration.NewSummary(m1))
@@ -113,7 +114,7 @@ var _ = Describe("MongoDBTarget", func() {
 	})
 
 	It("should return the current version with an arbitrary addition of migrations", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		target.AddMigration(migration.NewSummary(m5))
 		target.AddMigration(migration.NewSummary(m3))
 		target.AddMigration(migration.NewSummary(m1))
@@ -127,7 +128,7 @@ var _ = Describe("MongoDBTarget", func() {
 	})
 
 	It("should remove a migration from the database", func() {
-		target := migration.NewMongoDB(session)
+		target := migration.NewMongoDB(session.DB(""))
 		target.AddMigration(migration.NewSummary(m5))
 		target.AddMigration(migration.NewSummary(m3))
 		target.AddMigration(migration.NewSummary(m1))

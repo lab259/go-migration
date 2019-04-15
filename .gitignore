@@ -17,3 +17,4 @@
 *.coverprofile
 
 vendor/
+.docker/

@@ -1,10 +1,12 @@
 package migration_test
 
 import (
-	"github.com/lab259/go-migration"
 	"time"
 
+	"github.com/lab259/go-migration"
+
 	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -40,7 +42,7 @@ func (target *nopTarget) RemoveMigration(summary *migration.Summary) error {
 	if target.executed == nil {
 		target.executed = make([]*migration.Summary, 0)
 	}
-	for i := len(target.executed)-1; i >= 0; i-- {
+	for i := len(target.executed) - 1; i >= 0; i-- {
 		if target.executed[i].Migration.GetID() == summary.Migration.GetID() {
 			target.executed = append(target.executed[:i], target.executed[i+1:]...)
 		}
@@ -159,12 +161,12 @@ func (reporter *nopReporter) NoCommand() {
 var _ = Describe("ManagerDefault", func() {
 
 	var (
-		target                     migration.Target
-		codeSource                 *migration.CodeSource
-		manager                    migration.Manager
+		target     migration.Target
+		codeSource *migration.CodeSource
+		manager    migration.Manager
 		m1, m2, m3,
-		m4UndoneErr, m5DoneErr,
-		m4UndonePanic, m5DonePanic *migrationMock
+		/*m4UndoneErr, */ m5DoneErr *migrationMock
+		/*m4UndonePanic,  m5DonePanic*/
 	)
 
 	BeforeEach(func() {
@@ -190,11 +192,13 @@ var _ = Describe("ManagerDefault", func() {
 		codeSource.Register(m2)
 		codeSource.Register(m3)
 
-		m4UndoneErr = &migrationMock{
-			id:          time.Date(2001, 6, 0, 0, 0, 0, 0, time.UTC),
-			description: "GetDescription 4: Undone err",
-			undoneErr:   errors.New("m4 undone forced error"),
-		}
+		/*
+			m4UndoneErr = &migrationMock{
+				id:          time.Date(2001, 6, 0, 0, 0, 0, 0, time.UTC),
+				description: "GetDescription 4: Undone err",
+				undoneErr:   errors.New("m4 undone forced error"),
+			}
+		*/
 
 		m5DoneErr = &migrationMock{
 			id:          time.Date(2001, 6, 0, 1, 0, 0, 0, time.UTC),
@@ -202,17 +206,19 @@ var _ = Describe("ManagerDefault", func() {
 			doneErr:     errors.New("m5 done forced error"),
 		}
 
-		m4UndonePanic = &migrationMock{
-			id:              time.Date(2001, 6, 0, 0, 0, 0, 0, time.UTC),
-			description:     "GetDescription 4: Done Panic",
-			undonePanicData: errors.New("m4 undone panic forced error"),
-		}
+		/*
+			m4UndonePanic = &migrationMock{
+				id:              time.Date(2001, 6, 0, 0, 0, 0, 0, time.UTC),
+				description:     "GetDescription 4: Done Panic",
+				undonePanicData: errors.New("m4 undone panic forced error"),
+			}
 
-		m5DonePanic = &migrationMock{
-			id:            time.Date(2001, 6, 0, 1, 0, 0, 0, time.UTC),
-			description:   "GetDescription 5: Done Panic",
-			donePanicData: errors.New("m5 done panic forced error"),
-		}
+			m5DonePanic = &migrationMock{
+				id:            time.Date(2001, 6, 0, 1, 0, 0, 0, time.UTC),
+				description:   "GetDescription 5: Done Panic",
+				donePanicData: errors.New("m5 done panic forced error"),
+			}
+		*/
 
 		manager = migration.NewDefaultManager(target, codeSource)
 	})

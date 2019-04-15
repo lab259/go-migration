@@ -29,6 +29,12 @@ coverage-ci:
 coverage-html:
 	@$(GOPATHCMD) go tool cover -html="${COVERAGEFILE}" -o .cover/report.html
 
+dcup:
+	@docker-compose up -d
+
+dcdn:
+	@docker-compose down --remove-orphans
+
 dep-ensure:
 	@$(GOPATHCMD) dep ensure -v
 

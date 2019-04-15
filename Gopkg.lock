@@ -184,6 +184,7 @@
   input-imports = [
     "github.com/fatih/color",
     "github.com/globalsign/mgo",
+    "github.com/globalsign/mgo/bson",
     "github.com/jamillosantos/macchiato",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",

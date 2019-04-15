@@ -1,9 +1,10 @@
 package migration
 
 import (
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"time"
 )
 
 // MongoDBTarget implements the migration.Target of the MongoDB.
@@ -11,7 +12,7 @@ import (
 // In order to get access to the MongoDB, migration.MongoDBTarget uses the MGo
 // library (http://github.com/globalsign/mgo).
 type MongoDBTarget struct {
-	session        *mgo.Session
+	db             *mgo.Database
 	collectionName string
 }
 
@@ -21,18 +22,15 @@ type mongoDBMigrationVersion struct {
 }
 
 // NewMongoDB returns a new instance of the migration.MongoDBTarget
-func NewMongoDB(session *mgo.Session) *MongoDBTarget {
+func NewMongoDB(db *mgo.Database) *MongoDBTarget {
 	return &MongoDBTarget{
 		collectionName: DefaultMigrationTable,
-		session:        session,
+		db:             db,
 	}
 }
 
 func (t *MongoDBTarget) runWithDB(cb func(db *mgo.Database) error) error {
-	sess := t.session.Clone()
-	defer sess.Close()
-
-	return cb(sess.DB(""))
+	return cb(t.db)
 }
 
 func (t *MongoDBTarget) collection(db *mgo.Database) *mgo.Collection {
@@ -118,7 +116,7 @@ func (t *MongoDBTarget) SetCollectionName(collection string) *MongoDBTarget {
 	return t
 }
 
-// Session returns the mgo.Session reference of this target.
-func (t *MongoDBTarget) Session() *mgo.Session {
-	return t.session
+// Database returns the `*mgo.Database` reference of this target.
+func (t *MongoDBTarget) Database() *mgo.Database {
+	return t.db
 }
