@@ -72,10 +72,17 @@ var CodeMigrationDateFormat = "20060102150405"
 
 // NewCodeMigration uses the regex to extract data NewMigration.
 //
+// It uses the `NewCodeMigrationCustom`.
+func NewCodeMigration(handlers ...Handler) *DefaultMigration {
+	return NewCodeMigrationCustom(1, handlers...)
+}
+
+// NewCodeMigrationCustom uses the regex to extract data NewMigration.
+//
 // If a handler is provided it will assigned to the Up method. If a second is
 // provided, it will be assigned to the Down method.
-func NewCodeMigration(handlers ...Handler) *DefaultMigration {
-	_, file, _, ok := runtime.Caller(1)
+func NewCodeMigrationCustom(skip int, handlers ...Handler) *DefaultMigration {
+	_, file, _, ok := runtime.Caller(1 + skip)
 	if ok {
 		groups := codeMigrationRegex.FindStringSubmatch(path.Base(file))
 		if len(groups) == 3 {
