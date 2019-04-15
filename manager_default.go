@@ -133,7 +133,7 @@ func (manager *ManagerDefault) MigrationsExecuted() ([]Migration, error) {
 // Before the execution of the migrations, it calls the reporter.Before method.
 // After the migration is executed, if it returns no error, it calls the
 // reporter.After method.
-func (manager *ManagerDefault) Do(reporter Reporter) (*Summary, error) {
+func (manager *ManagerDefault) Do(reporter Reporter, executionContext interface{}) (*Summary, error) {
 	version, err := manager.target.Version()
 	if err != nil {
 		return nil, err
@@ -152,10 +152,10 @@ func (manager *ManagerDefault) Do(reporter Reporter) (*Summary, error) {
 	if len(migrations) == 0 {
 		return nil, nil
 	}
-	return manager.do(migrations[0], reporter)
+	return manager.do(migrations[0], reporter, executionContext)
 }
 
-func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Summary, err error) {
+func (manager *ManagerDefault) do(m Migration, reporter Reporter, executionContext interface{}) (summary *Summary, err error) {
 	summary = &Summary{
 		Migration: m,
 		direction: DirectionDo,
@@ -174,7 +174,7 @@ func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Summ
 				err = ErrMigrationPanicked
 			}
 		}()
-		err = m.Do()
+		err = m.Do(executionContext)
 	}()
 	summary.duration = time.Since(startedAt)
 
@@ -201,7 +201,7 @@ func (manager *ManagerDefault) do(m Migration, reporter Reporter) (summary *Summ
 // Before the execution of the migrations, it calls the reporter.Before method.
 // After the migration is executed, if it returns no error, it calls the
 // reporter.After method.
-func (manager *ManagerDefault) Undo(reporter Reporter) (*Summary, error) {
+func (manager *ManagerDefault) Undo(reporter Reporter, executionContext interface{}) (*Summary, error) {
 	migrations, err := manager.MigrationsExecuted()
 	if err != nil {
 		return nil, err
@@ -210,11 +210,11 @@ func (manager *ManagerDefault) Undo(reporter Reporter) (*Summary, error) {
 	if len(migrations) == 0 {
 		return nil, nil
 	}
-	summary, err := manager.undo(migrations[len(migrations)-1], reporter)
+	summary, err := manager.undo(migrations[len(migrations)-1], reporter, executionContext)
 	return summary, err
 }
 
-func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*Summary, error) {
+func (manager *ManagerDefault) undo(m Migration, reporter Reporter, executionContext interface{}) (*Summary, error) {
 	summary := &Summary{
 		Migration: m,
 		direction: DirectionUndo,
@@ -235,7 +235,7 @@ func (manager *ManagerDefault) undo(m Migration, reporter Reporter) (*Summary, e
 				err = ErrMigrationPanicked
 			}
 		}()
-		err = m.Undo()
+		err = m.Undo(executionContext)
 	}()
 	summary.duration = time.Since(startedAt)
 
@@ -273,7 +273,7 @@ func (manager *ManagerDefault) detectStarvation(reporter Reporter, list []Migrat
 }
 
 // Migrate brings the database to the latest migration.
-func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
+func (manager *ManagerDefault) Migrate(reporter Reporter, executionContext interface{}) ([]*Summary, error) {
 	version, err := manager.target.Version()
 	if err != nil {
 		return nil, err
@@ -291,7 +291,7 @@ func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
 	reporter.BeforeMigrate(list)
 	result := make([]*Summary, 0, len(list))
 	for i := 0; i < len(list); i++ {
-		summary, err := manager.do(list[i], reporter)
+		summary, err := manager.do(list[i], reporter, executionContext)
 		if summary != nil {
 			result = append(result, summary)
 		}
@@ -307,7 +307,7 @@ func (manager *ManagerDefault) Migrate(reporter Reporter) ([]*Summary, error) {
 // It lists all the executed migrations and executes their
 // migration.Migrate.Down in a inverted order, virtually bringing the database
 // to its original form.
-func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*Summary, error) {
+func (manager *ManagerDefault) Rewind(reporter Reporter, executionContext interface{}) ([]*Summary, error) {
 	list, err := manager.MigrationsExecuted()
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*Summary, error) {
 	reporter.BeforeRewind(list)
 	result := make([]*Summary, 0, len(list))
 	for i := len(list) - 1; i > -1; i-- {
-		summary, err := manager.undo(list[i], reporter)
+		summary, err := manager.undo(list[i], reporter, executionContext)
 		if summary != nil {
 			result = append(result, summary)
 		}
@@ -327,12 +327,12 @@ func (manager *ManagerDefault) Rewind(reporter Reporter) ([]*Summary, error) {
 }
 
 // Reset rewind all the migrations, then migrates to the latest.
-func (manager *ManagerDefault) Reset(reporter Reporter) ([]*Summary, []*Summary, error) {
+func (manager *ManagerDefault) Reset(reporter Reporter, executionContext interface{}) ([]*Summary, []*Summary, error) {
 	reporter.BeforeReset()
-	migrationsBack, err := manager.Rewind(reporter)
+	migrationsBack, err := manager.Rewind(reporter, executionContext)
 	if err != nil {
 		return migrationsBack, nil, err
 	}
-	migrationsForward, err := manager.Migrate(reporter)
+	migrationsForward, err := manager.Migrate(reporter, executionContext)
 	return migrationsBack, migrationsForward, err
 }

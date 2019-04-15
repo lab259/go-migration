@@ -36,8 +36,8 @@ func NewMigrationID(str string) time.Time {
 type Migration interface {
 	GetID() time.Time
 	GetDescription() string
-	Do() error
-	Undo() error
+	Do(executionContext interface{}) error
+	Undo(executionContext interface{}) error
 	GetManager() Manager
 	SetManager(manager Manager) Migration
 }

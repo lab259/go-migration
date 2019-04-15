@@ -343,7 +343,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("AddMigration: forced error"))
 
@@ -363,7 +363,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 
 			Expect(ms).To(HaveLen(3))
@@ -390,7 +390,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 
 			Expect(ms).To(HaveLen(2))
@@ -428,7 +428,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(ContainSubstring("forced error"))
 
@@ -467,7 +467,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
@@ -503,7 +503,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionDo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
@@ -526,7 +526,7 @@ var _ = Describe("ManagerDefault", func() {
 		It("should detect starvation", func() {
 			target.AddMigration(migration.NewSummary(m2))
 
-			ms, err := manager.Migrate(&nopReporter{})
+			ms, err := manager.Migrate(&nopReporter{}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationStarved))
 
 			Expect(ms).To(BeEmpty())
@@ -549,7 +549,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("RemoveMigration: forced error"))
 
@@ -585,7 +585,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 
 			Expect(ms).To(HaveLen(3))
@@ -620,7 +620,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(BeNil())
 
 			Expect(ms).To(HaveLen(2))
@@ -657,7 +657,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(ContainSubstring("forced error"))
 
@@ -698,7 +698,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(2))
@@ -742,7 +742,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
@@ -778,7 +778,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
 					migrations = append(migrations, summary.Migration)
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 
 			Expect(ms).To(HaveLen(1))
@@ -808,7 +808,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -833,7 +833,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -852,7 +852,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m2))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -871,7 +871,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m3))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -903,7 +903,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m5DoneErr))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(m5DoneErr.doneErr))
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
@@ -936,7 +936,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
@@ -970,7 +970,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(summary.Direction()).To(Equal(migration.DirectionDo))
@@ -988,7 +988,7 @@ var _ = Describe("ManagerDefault", func() {
 		It("should detect starvation", func() {
 			target.AddMigration(migration.NewSummary(m2))
 
-			ms, err := manager.Do(&nopReporter{})
+			ms, err := manager.Do(&nopReporter{}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationStarved))
 
 			Expect(ms).To(BeNil())
@@ -1008,7 +1008,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -1036,7 +1036,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m3))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -1055,7 +1055,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m2))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -1074,7 +1074,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m1))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 
 			Expect(err).To(BeNil())
 			Expect(beforeMigrationCalled).To(BeTrue())
@@ -1111,7 +1111,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration.GetID()).To(Equal(migrationErrored.id))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migrationErrored.undoneErr))
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
@@ -1152,7 +1152,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(migrationErrored))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
@@ -1193,7 +1193,7 @@ var _ = Describe("ManagerDefault", func() {
 					Expect(summary.Migration).To(Equal(m))
 					beforeMigrationCalled = true
 				},
-			})
+			}, nil)
 			Expect(err).To(Equal(migration.ErrMigrationPanicked))
 			Expect(beforeMigrationCalled).To(BeTrue())
 			Expect(summary.Direction()).To(Equal(migration.DirectionUndo))
@@ -1215,7 +1215,7 @@ var _ = Describe("ManagerDefault", func() {
 			target.AddMigration(migration.NewSummary(m2))
 			target.AddMigration(migration.NewSummary(m3))
 
-			migrationUndone, migrationsDone, err := manager.Reset(&nopReporter{})
+			migrationUndone, migrationsDone, err := manager.Reset(&nopReporter{}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(migrationUndone).To(HaveLen(3))
 			Expect(migrationsDone).To(HaveLen(3))

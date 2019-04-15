@@ -2,10 +2,11 @@ package migration_test
 
 import (
 	"errors"
+	"time"
+
 	"github.com/lab259/go-migration"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 var _ = Describe("MigrationDefault", func() {
@@ -19,14 +20,14 @@ var _ = Describe("MigrationDefault", func() {
 	It("should create a new instance with one handler", func() {
 		now := time.Now().UTC()
 
-		do := func () error {
+		do := func(executionContext interface{}) error {
 			return errors.New("this is do")
 		}
 
 		m := migration.NewMigration(now, "description 1", do)
 		Expect(m.GetID()).To(Equal(now))
 		Expect(m.GetDescription()).To(Equal("description 1"))
-		err := m.Do()
+		err := m.Do(nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("this is do"))
 	})
@@ -34,20 +35,20 @@ var _ = Describe("MigrationDefault", func() {
 	It("should create a new instance with two handlers", func() {
 		now := time.Now().UTC()
 
-		do := func () error {
+		do := func(executionContext interface{}) error {
 			return errors.New("this is do")
 		}
-		undo := func () error {
+		undo := func(executionContext interface{}) error {
 			return errors.New("this is undo")
 		}
 
 		m := migration.NewMigration(now, "description 1", do, undo)
 		Expect(m.GetID()).To(Equal(now))
 		Expect(m.GetDescription()).To(Equal("description 1"))
-		err := m.Do()
+		err := m.Do(nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("this is do"))
-		err = m.Undo()
+		err = m.Undo(nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("this is undo"))
 	})

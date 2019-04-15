@@ -19,22 +19,22 @@ func NewArgsRunner(reporter Reporter, manager Manager, exitFnc func(code int)) R
 		reporter: reporter,
 		manager:  manager,
 		args:     os.Args[1:],
-		exitFnc: exitFnc,
+		exitFnc:  exitFnc,
 	}
 }
 
 // NewArgsRunnerCustom create a new instance of the Runer with custom arguments.
-func NewArgsRunnerCustom(reporter Reporter, manager Manager, exitFnc func (code int), args ...string) Runner {
+func NewArgsRunnerCustom(reporter Reporter, manager Manager, exitFnc func(code int), args ...string) Runner {
 	return &ArgsRunner{
 		reporter: reporter,
 		manager:  manager,
-		exitFnc: exitFnc,
+		exitFnc:  exitFnc,
 		args:     args,
 	}
 }
 
 // Run performs the actions based on the arguments captured.
-func (runner *ArgsRunner) Run() {
+func (runner *ArgsRunner) Run(executionContext interface{}) {
 	args := runner.args
 	if len(args) > 0 {
 		for _, s := range args {
@@ -44,15 +44,15 @@ func (runner *ArgsRunner) Run() {
 			case "executed":
 				runner.reporter.ListExecuted(runner.manager.MigrationsExecuted())
 			case "migrate":
-				runner.reporter.AfterMigrate(runner.manager.Migrate(runner.reporter))
+				runner.reporter.AfterMigrate(runner.manager.Migrate(runner.reporter, executionContext))
 			case "rewind":
-				runner.reporter.AfterRewind(runner.manager.Rewind(runner.reporter))
+				runner.reporter.AfterRewind(runner.manager.Rewind(runner.reporter, executionContext))
 			case "do":
-				runner.reporter.MigrationSummary(runner.manager.Do(runner.reporter))
+				runner.reporter.MigrationSummary(runner.manager.Do(runner.reporter, executionContext))
 			case "undo":
-				runner.reporter.MigrationSummary(runner.manager.Undo(runner.reporter))
+				runner.reporter.MigrationSummary(runner.manager.Undo(runner.reporter, executionContext))
 			case "reset":
-				runner.reporter.AfterReset(runner.manager.Reset(runner.reporter))
+				runner.reporter.AfterReset(runner.manager.Reset(runner.reporter, executionContext))
 			default:
 				runner.reporter.CommandNotFound(s)
 			}

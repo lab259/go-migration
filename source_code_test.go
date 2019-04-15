@@ -1,8 +1,9 @@
 package migration_test
 
 import (
-	"github.com/lab259/go-migration"
 	"time"
+
+	"github.com/lab259/go-migration"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +29,7 @@ func (m *migrationMock) GetDescription() string {
 	return m.description
 }
 
-func (m *migrationMock) Do() error {
+func (m *migrationMock) Do(executionContext interface{}) error {
 	m.done = true
 	if m.donePanicData != nil {
 		panic(m.donePanicData)
@@ -36,7 +37,7 @@ func (m *migrationMock) Do() error {
 	return m.doneErr
 }
 
-func (m *migrationMock) Undo() error {
+func (m *migrationMock) Undo(executionContext interface{}) error {
 	m.undone = true
 	if m.undonePanicData != nil {
 		panic(m.undonePanicData)

@@ -36,7 +36,7 @@ func (m *FileMigration) GetDescription() string {
 // [migration.FileMigration.baseFile].up.sql file.
 //
 // If the file does not exists, it returns an error.
-func (m *FileMigration) Do() error {
+func (m *FileMigration) Do(executionContext interface{}) error {
 	// TODO
 	return nil
 }
@@ -45,7 +45,7 @@ func (m *FileMigration) Do() error {
 // the [migration.FileMigration.baseFile].down.sql file.
 //
 // If the file does not exists, it returns an error.
-func (m *FileMigration) Undo() error {
+func (m *FileMigration) Undo(executionContext interface{}) error {
 	// TODO
 	return nil
 }

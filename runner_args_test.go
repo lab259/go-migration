@@ -1,10 +1,11 @@
 package migration_test
 
 import (
+	"time"
+
 	"github.com/lab259/go-migration"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 type customReporter struct {
@@ -153,7 +154,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "pending")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -166,7 +167,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "executed")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -179,7 +180,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "migrate")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -192,7 +193,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "rewind")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -207,7 +208,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "do")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -225,7 +226,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "undo")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -243,7 +244,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "reset")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -262,7 +263,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {}, "unknowncmd")
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 
@@ -280,7 +281,7 @@ var _ = Describe("RunnerArgs", func() {
 			},
 		}, manager, func(code int) {})
 		Expect(r).NotTo(BeNil())
-		r.Run()
+		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
 })

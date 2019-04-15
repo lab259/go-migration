@@ -40,7 +40,7 @@ type DefaultMigration struct {
 
 // Handler is the signature of the up and down methods that a migration
 // will receive.
-type Handler func() error
+type Handler func(executionContext interface{}) error
 
 // NewMigration returns a new instance of migration.Migration with all the
 // required properties initialized.
@@ -94,13 +94,13 @@ func NewCodeMigration(handlers ...Handler) *DefaultMigration {
 }
 
 // Do calls the up action of the migration.
-func (m *DefaultMigration) Do() error {
-	return m.do()
+func (m *DefaultMigration) Do(executionContext interface{}) error {
+	return m.do(executionContext)
 }
 
 // Undo calls the down action of the migration.
-func (m *DefaultMigration) Undo() error {
-	return m.undo()
+func (m *DefaultMigration) Undo(executionContext interface{}) error {
+	return m.undo(executionContext)
 }
 
 // GetManager returns the reference of the manager that is executing the
