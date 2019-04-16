@@ -46,6 +46,14 @@
   revision = "3be045cc503344c551700381369b71cf18ca80cf"
 
 [[projects]]
+  digest = "1:b625eb1694124e10a585355e4605f35b2cef495841c1015ecbee7019fa2b0e35"
+  name = "github.com/lab259/rlog"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1ce2ad90a21c4c1c3aa9dbf98c5cba99cb3eb76e"
+  version = "v2.0.1"
+
+[[projects]]
   digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
@@ -111,6 +119,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:bbe51412d9915d64ffaa96b51d409e070665efc5194fcf145c4a27d4133107a4"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  pruneopts = "UT"
+  revision = "88737f569e3a9c7ab309cdc09a07fe7fc87233c3"
+
+[[projects]]
+  branch = "master"
   digest = "1:5193d913046443e59093d66a97a40c51f4a5ea4ceba60f3b3ecf89694de5d16f"
   name = "golang.org/x/net"
   packages = [
@@ -123,9 +139,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a62e80faf19c93dcbd7954a26fdb51acbfcb4b7161966adf1de531e593c4834a"
+  digest = "1:a089387bbfcfa884e5aafeebb85929993195bb8959766b1d20102841d47e0b0e"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "UT"
   revision = "93218def8b18e66adbdab3eca8ec334700329f1f"
 
@@ -186,6 +205,7 @@
     "github.com/globalsign/mgo",
     "github.com/globalsign/mgo/bson",
     "github.com/jamillosantos/macchiato",
+    "github.com/lab259/rlog",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
   ]

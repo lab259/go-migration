@@ -50,3 +50,8 @@ func (summary *Summary) PanicData() interface{} {
 func (summary *Summary) Direction() Direction {
 	return summary.direction
 }
+
+// Duration is how long the migration took to run.
+func (summary *Summary) Duration() time.Duration {
+	return summary.duration
+}
