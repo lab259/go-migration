@@ -2,17 +2,18 @@ package migrations
 
 import (
 	"github.com/globalsign/mgo"
+
 	. "github.com/lab259/go-migration"
 	"github.com/lab259/go-migration/examples/mongo/db"
 )
 
 func init() {
 	NewCodeMigration(
-		func() error {
+		func(executionContext interface{}) error {
 			// Get the connection reference
 			session := db.GetSession()
 			defer session.Close()
-			//-------------------
+			// -------------------
 
 			c := session.DB("").C("customers")
 			err := c.EnsureIndex(mgo.Index{
@@ -20,7 +21,7 @@ func init() {
 				Key:  []string{"name"},
 			})
 			return err // Return the error of the operation
-		}, func() error {
+		}, func(executionContext interface{}) error {
 			session := db.GetSession()
 			defer session.Close()
 

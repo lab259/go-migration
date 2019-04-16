@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/globalsign/mgo"
+
 	"github.com/lab259/go-migration"
 	"github.com/lab259/go-migration/examples/mongo/db"
 	_ "github.com/lab259/go-migration/examples/mongo/migrations"
-	"os"
 )
 
 func main() {
@@ -22,7 +24,7 @@ func main() {
 	source := migration.DefaultCodeSource()
 	reporter := migration.NewDefaultReporter()
 
-	manager := migration.NewDefaultManager(migration.NewMongoDB(session), source)
+	manager := migration.NewDefaultManager(migration.NewMongoDB(session.DB("")), source)
 	runner := migration.NewArgsRunner(reporter, manager, os.Exit)
-	runner.Run()
+	runner.Run(nil)
 }
