@@ -74,7 +74,9 @@ var CodeMigrationDateFormat = "20060102150405"
 //
 // It uses the `NewCodeMigrationCustom`.
 func NewCodeMigration(handlers ...Handler) *DefaultMigration {
-	return NewCodeMigrationCustom(1, handlers...)
+	m := NewCodeMigrationCustom(1, handlers...)
+	DefaultCodeSource().Register(m)
+	return m
 }
 
 // NewCodeMigrationCustom uses the regex to extract data NewMigration.
@@ -91,7 +93,6 @@ func NewCodeMigrationCustom(skip int, handlers ...Handler) *DefaultMigration {
 				panic(fmt.Sprintf("the file name '%s' has an invalid datetime", file))
 			}
 			m := NewMigration(id, groups[2], handlers...)
-			DefaultCodeSource().Register(m)
 			return m
 		}
 		panic(fmt.Sprintf("the file name '%s' has an invalid format", file))
