@@ -5,6 +5,7 @@
 *.dylib
 .gopath/
 .cover/
+.vscode
 
 # Test binary, build with `go test -c`
 *.test

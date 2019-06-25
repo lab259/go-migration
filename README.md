@@ -136,17 +136,17 @@ own solution.
 
 ## Supported databases
 
-* MongoDB (via [mgo](https://github.com/go-mgo/mgo))
-* ~~MySQL~~ (TODO)
-* ~~PostgresSQL~~ (TODO)
-* ~~SQLite~~ (TODO)
+- MongoDB (via [mgo](https://github.com/go-mgo/mgo))
+- ~~MySQL~~ (TODO)
+- PostgresSQL (via [lib/pq](https://github.com/lib/pq))
+- ~~SQLite~~ (TODO)
 
 # Other migration frameworks
 
-* [Mattes Migrate](https://github.com/mattes/migrate)
-* [Goose](https://github.com/pressly/goose)
-* [Gemnasium Migrate](https://github.com/gemnasium/migrate)
-* [GORM Migrate](https://github.com/go-gormigrate/gormigrate) (for the GORM)
+- [Mattes Migrate](https://github.com/mattes/migrate)
+- [Goose](https://github.com/pressly/goose)
+- [Gemnasium Migrate](https://github.com/gemnasium/migrate)
+- [GORM Migrate](https://github.com/go-gormigrate/gormigrate) (for the GORM)
 
 ## Extending
 
