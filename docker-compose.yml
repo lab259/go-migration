@@ -1,6 +1,12 @@
 version: "3"
 
 services:
+  postgres:
+    image: postgres:11-alpine
+    ports:
+      - 5432:5432
+    tmpfs: /var/lib/postgresql/data
+
   mongo:
     image: mongo:4
     environment:
