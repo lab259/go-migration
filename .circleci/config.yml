@@ -2,41 +2,45 @@ version: 2
 jobs:
   build:
     docker:
-    - image: circleci/golang:1.10.3
-    - image: circleci/mongo:4.0.0
+      - image: circleci/golang:1.12
+      - image: circleci/mongo:4.0.0
+      - image: circleci/postgres:9.6.2-alpine
 
-    working_directory: /go/src/github.com/lab259/go-migration
     steps:
-    - checkout
+      - checkout
 
-    - run:
-        name: Install dockerize
-        command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-        environment:
-          DOCKERIZE_VERSION: v0.3.0
+      - restore_cache:
+          keys:
+            - deps-{{ .Branch }}-{{ checksum "go.sum" }}
+            - deps-{{ .Branch }}-
+            - deps-
 
-    - run:
-        name: Wait for Mongo
-        command: dockerize -wait tcp://localhost:27017 -timeout 1m
+      - run:
+          name: Wait for Mongo
+          command: dockerize -wait tcp://localhost:27017 -timeout 1m
 
-    - run:
-        name: Install Dep
-        command: |
-          go get -u github.com/tools/godep
+      - run:
+          name: Wait for PostgreSQL
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
 
-    - run:
-        name: Install Ginkgo
-        command: |
-          go get -u github.com/onsi/ginkgo/ginkgo
+      - run:
+          name: Install Ginkgo
+          command: go get github.com/onsi/ginkgo/ginkgo
 
-    - run:
-        name: Get dependencies
-        command: |
-          make dep-ensure
+      - run:
+          name: Get dependencies
+          command: go mod download
 
-    - run:
-        name: Run tests
-        command: |
-          make coverage-ci
+      - run:
+          name: Run tests
+          command: make coverage-ci
 
-    - run: bash <(curl -s https://codecov.io/bash)
+      - run: bash <(curl -s https://codecov.io/bash)
+
+      - save_cache:
+          key: deps-{{ .Branch }}-{{ checksum "go.sum" }}
+          paths:
+            - /go/pkg/mod
+
+      - store_test_results:
+          path: test-results

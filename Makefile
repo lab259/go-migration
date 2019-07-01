@@ -1,33 +1,29 @@
 VERSION ?= $(shell git describe --tags 2>/dev/null | cut -c 2-)
 TEST_FLAGS ?=
-REPO_OWNER ?= $(shell cd .. && basename "$$(pwd)")
-
-GOPATH=$(CURDIR)/../../../../
-GOPATHCMD=GOPATH=$(GOPATH)
 
 COVERDIR=$(CURDIR)/.cover
 COVERAGEFILE=$(COVERDIR)/cover.out
 
 test:
-	@${GOPATHCMD} ginkgo --failFast ./...
+	@ginkgo --failFast ./...
 
 test-watch:
-	@${GOPATHCMD} ginkgo watch -cover -r ./...
+	@ginkgo watch -cover -r ./...
 
 coverage:
 	@mkdir -p $(COVERDIR)
-	@${GOPATHCMD} ginkgo -r -covermode=count --cover --trace ./
+	@ginkgo -r -covermode=count --cover --trace ./
 	@echo "mode: count" > "${COVERAGEFILE}"
 	@find . -type f -name *.coverprofile -exec grep -h -v "^mode:" {} >> "${COVERAGEFILE}" \; -exec rm -f {} \;
 
 coverage-ci:
 	@mkdir -p $(COVERDIR)
-	@${GOPATHCMD} ginkgo -r -covermode=count --cover --trace ./
+	@ginkgo -r -covermode=count --cover --trace ./
 	@echo "mode: count" > "${COVERAGEFILE}"
 	@find . -type f -name *.coverprofile -exec grep -h -v "^mode:" {} >> "${COVERAGEFILE}" \; -exec rm -f {} \;
 
 coverage-html:
-	@$(GOPATHCMD) go tool cover -html="${COVERAGEFILE}" -o .cover/report.html
+	@go tool cover -html="${COVERAGEFILE}" -o .cover/report.html
 
 dcup:
 	@docker-compose up -d
@@ -35,20 +31,14 @@ dcup:
 dcdn:
 	@docker-compose down --remove-orphans
 
-dep-ensure:
-	@$(GOPATHCMD) dep ensure -v
-
-dep-update:
-	@$(GOPATHCMD) dep ensure -v
-
 vet:
-	@$(GOPATHCMD) go vet ./...
+	@go vet ./...
 
 lint:
-	@$(GOPATHCMD) golint
+	@golint
 
 fmt:
-	@$(GOPATHCMD) go fmt ./...
+	@go fmt ./...
 
 # example: fswatch -0 --exclude .godoc.pid --event Updated . | xargs -0 -n1 -I{} make docs
 docs:
@@ -62,7 +52,7 @@ kill-docs:
 	rm .godoc.pid
 
 open-docs:
-	open http://localhost:6064/pkg/github.com/$(REPO_OWNER)/migrations
+	open http://localhost:6064/pkg/github.com/lab259/go-migration
 
 # example: make release V=0.0.0
 release:
@@ -70,10 +60,4 @@ release:
 	@read -p "Press enter to confirm and push to origin ..." && git push origin v$(V)
 
 
-.PHONY: build-cli clean test-short test test-with-flags deps html-coverage \
-        restore-import-paths rewrite-import-paths list-external-deps release \
-        docs kill-docs open-docs kill-orphaned-docker-containers dep-ensure \
-        dep-update
-
-SHELL = /bin/bash
-RAND = $(shell echo $$RANDOM)
+.PHONY: test test-watch coverage coverage-ci coverage-html dcup dcdn vet lint fmt docs kill-docs open-docs release
