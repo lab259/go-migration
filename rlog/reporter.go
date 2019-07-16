@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	rlog2 "github.com/lab259/rlog"
+	rlog2 "github.com/lab259/rlog/v2"
 
 	"github.com/lab259/go-migration"
 )
