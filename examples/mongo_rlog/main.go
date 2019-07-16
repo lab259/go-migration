@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/globalsign/mgo"
-	rlog2 "github.com/lab259/rlog"
+	rlog2 "github.com/lab259/rlog/v2"
 
 	"github.com/lab259/go-migration"
 	"github.com/lab259/go-migration/examples/mongo/db"
