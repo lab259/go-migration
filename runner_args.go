@@ -35,6 +35,11 @@ func NewArgsRunnerCustom(reporter Reporter, manager Manager, exitFnc func(code i
 
 // Run performs the actions based on the arguments captured.
 func (runner *ArgsRunner) Run(executionContext interface{}) {
+	target := runner.manager.Target()
+	if beforeHook, ok := target.(BeforeRun); ok {
+		beforeHook.BeforeRun(executionContext)
+	}
+
 	args := runner.args
 	if len(args) > 0 {
 		for _, s := range args {

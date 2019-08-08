@@ -284,4 +284,21 @@ var _ = Describe("RunnerArgs", func() {
 		r.Run(nil)
 		Expect(ran).To(BeTrue())
 	})
+
+	It("should run the before run hook", func() {
+		ran := false
+		target := &BeforeRunTarget{}
+		source := migration.NewCodeSource()
+		source.Register(migration.NewMigration(time.Now(), "Description 1"))
+		manager := migration.NewDefaultManager(target, source)
+		r := migration.NewArgsRunnerCustom(&customReporter{
+			beforeMigration: func(summary migration.Summary, err error) {
+				ran = true
+			},
+		}, manager, func(code int) {}, "do")
+		Expect(r).NotTo(BeNil())
+		r.Run(nil)
+		Expect(ran).To(BeTrue())
+		Expect(target.BeforeRuns).To(Equal(1))
+	})
 })
