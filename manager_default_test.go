@@ -100,6 +100,15 @@ func (target *RemoveMigrationErroredTarget) RemoveMigration(summary *migration.S
 	return errors.New("RemoveMigration: forced error")
 }
 
+type BeforeRunTarget struct {
+	nopTarget
+	BeforeRuns int
+}
+
+func (target *BeforeRunTarget) BeforeRun(executionContext interface{}) {
+	target.BeforeRuns += 1
+}
+
 type nopReporter struct {
 	beforeMigration func(summary *migration.Summary, err error)
 }

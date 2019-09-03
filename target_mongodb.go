@@ -120,3 +120,13 @@ func (t *MongoDBTarget) SetCollectionName(collection string) *MongoDBTarget {
 func (t *MongoDBTarget) Database() *mgo.Database {
 	return t.db
 }
+
+// BeforeRun implements the BeforeRun interface.
+func (t *MongoDBTarget) BeforeRun(executionContext interface{}) {
+	if db, ok := executionContext.(*mgo.Database); ok {
+		db.Session.ResetIndexCache()
+	}
+	if session, ok := executionContext.(*mgo.Session); ok {
+		session.ResetIndexCache()
+	}
+}

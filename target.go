@@ -21,3 +21,8 @@ type Target interface {
 	// MigrationsExecuted returns all the migrations executed.
 	MigrationsExecuted() ([]time.Time, error)
 }
+
+// BeforeRun describes a hook to be called before the Runner actually run.
+type BeforeRun interface {
+	BeforeRun(executionContext interface{})
+}
