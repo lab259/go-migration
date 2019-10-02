@@ -24,7 +24,7 @@ func main() {
 	os.Exit(3)
 }
 
-func create(description ... string) {
+func create(description ...string) {
 	if len(description) == 0 {
 		fmt.Println("the description is required")
 		fmt.Println("")
